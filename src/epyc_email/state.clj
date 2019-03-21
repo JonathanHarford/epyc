@@ -13,6 +13,7 @@
   (apply swap! db update-in keys update-fn update-args))
 
 (defn ^:private ->new-id [db keypath]
+  {:post [(nat-int? %)]}
   (->> (get-in @db keypath)
        keys
        (cons -1)
@@ -27,6 +28,7 @@
 
 (defn create-player [db player]
   (let [id (->new-id db [:players])]
+    (println (str "Creating player " id " (" (:email player) ")"))
     (assoc-db db [:players id] (assoc player
                                       :id id
                                       :c-at (now)))
@@ -36,38 +38,49 @@
   (update-db db [:players] dissoc id))
 
 (defn create-game [db]
-  (let [id (->new-id db [:games])]
-    (assoc-db db [:games id] {:id    id
-                              :c-at  (now)
-                              :turns []})
-    id))
+  (let [id (->new-id db [:games])
+        game {:id    id
+              :c-at  (now)
+              :turns []}]
+    (println "Creating game" id)
+    (assoc-db db [:games id] game)
+    game))
 
-(defn read-game [db game-id]
+(defn get-game [db game-id]
   (get-in @db [:games game-id]))
 
-(defn get-last-turn-id [game]
-  (-> game :turns count))
+(defn get-next-turn-id [game]
+  {:post [(nat-int? %)]}
+  (print (str "Getting turn " (:id game) "."))
+  (spy (-> game :turns count)))
 
-(defn get-last-turn [game]
-  (get-in game [:turns (get-last-turn-id game)]))
+(defn peek-last-turn [game]
+  (last (get game :turns)))
+
+(defn pop-last-turn [game]
+  (pop (get game :turns)))
+
+(defn text-turn? [game]
+  (or (-> game peek-last-turn :text-turn? not)
+      true))
 
 (defn create-turn
   ([db game player]
-   (let [text-turn? (->> game get-last-turn :text-turn? not)]
-     (update-db db [:games (:id game) :turns] conj {:player     (:id player)
-                                                    :text-turn? text-turn?
-                                                    :played?    false
-                                                    :c-at       (now)
-                                                    :u-at       (now)}))))
+   (println "Creating turn" (:id game) "." (get-next-turn-id game))
+   (update-db db [:games (:id game) :turns] conj {:player     (:id player)
+                                                  :text-turn? (text-turn? game)
+
+                                                  :played?    false
+                                                  :c-at       (now)
+                                                  :u-at       (now)})))
 
 (defn update-turn [db game player content]
-  (let [turn-id (get-last-turn-id game)
-        turn    (get-in @db [:games (:id game) :turns turn-id])]
+  (let [turn (merge (pop-last-turn game) {:content content
+                                          :played? true
+                                          :u-at    (now)})]
     (assert (= (:player turn) (:id player)))
     (assert (not (:played? turn)))
-    (update-db db [:games (:id game) :turns turn-id] merge {:content content
-                                                            :played? true
-                                                            :u-at    (now)})))
+    (update-db db [:games (:id game) :turns] conj turn)))
 
 (defn played? [{:keys [turns] :as game}
                {:keys [id] :as player}]
@@ -79,15 +92,18 @@
   (some #(not (played? % player)) (:games db)))
 
 (defn get-game-without-times
-  [db game-num]
-  (dissoc
-   (get-in @db [:games game-num] dissoc)
-   :c-at :u-at))
+  [db game-id]
+  (dissoc (get-game db game-id) :c-at :u-at))
+
+(defn get-player-without-times
+  [db player-id]
+  (dissoc (get-player db player-id) :c-at :u-at))
 
 (defn get-turn-without-times
-  [db game-num turn]
-  (dissoc
-   (get-in @db [:games game-num :turns turn])
-   :c-at :u-at))
+  [db game-id turn-id]
+  (let [game (get-game db game-id)
+        turn (peek-last-turn game)]
+    (assert (= (:id turn) turn-id))
+    (dissoc turn :c-at :u-at)))
 
 
