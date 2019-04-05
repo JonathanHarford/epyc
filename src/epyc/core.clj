@@ -28,11 +28,11 @@
         ;; db     (db/->Db db-spec)
         ;; epyc   (epyc/->Epyc db sender)
 
-        bot-api (h/handlers
-                 (h/command-fn "start" (partial start sender))
-                 (h/command-fn "help" (partial help sender))
-                 (h/command-fn "play" play)
-                 (h/message-fn message-fn))
+        bot-api (fn [x] (h/handling x
+                                    (h/command-fn "start" (partial start sender))
+                                    (h/command-fn "help" (partial help sender))
+                                    (h/command-fn "play" play)
+                                    (h/message-fn message-fn)))
         channel (p/start telegram-token bot-api {:timeout 65536})]
 
     (doall
