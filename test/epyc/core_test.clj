@@ -1,6 +1,6 @@
-(ns epyc-email.core-test
+(ns epyc.core-test
   (:require [clojure.test :refer :all]
-            [epyc-email.core :refer :all]))
+            [epyc.core :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."

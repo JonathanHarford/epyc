@@ -1,0 +1,14 @@
+CREATE TABLE player (
+  email VARCHAR (50) PRIMARY KEY,
+  handle VARCHAR (50) NOT NULL
+);
+
+CREATE TABLE game (
+  title VARCHAR (10) PRIMARY KEY,
+  current_turn INTEGER NOT NULL DEFAULT 0,
+  starting_player VARCHAR (50) NOT NULL,
+  CONSTRAINT game_player_fkey FOREIGN KEY (current_player)
+  REFERENCES player MATCH SIMPLE
+  ON UPDATE NO ACTION ON DELETE NO ACTION
+);
+

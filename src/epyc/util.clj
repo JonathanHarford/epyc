@@ -1,4 +1,4 @@
-(ns epyc-email.util
+(ns epyc.util
   (:require clojure.pprint))
 
 (defn spy [data]
@@ -7,3 +7,6 @@
 
 (defn now []
   (new java.util.Date))
+
+(defn uuid []
+  (.toString (java.util.UUID/randomUUID)))

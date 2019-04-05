@@ -1,6 +1,19 @@
-(ns epyc-email.state
-  (:require [epyc-email.util :refer [spy now]]))
+(ns epyc.state
+  (:require [epyc.util :refer [spy now]]))
 
+#_(defprotocol State
+  (create-state [overrides])
+  (get-player [id])
+  (lookup-player [criteria])
+  (create-player [player])
+  (delete-player [id])
+  (create-game [game])
+  (get-game [id])
+  (create-turn [game player])
+  (play-turn [game player content])
+  (get-turn [db player])
+
+  )
 (defn create-state [overrides]
   (atom (merge {:games   {}
                 :players {}}
@@ -29,10 +42,12 @@
 (defn create-player [db player]
   (let [id (->new-id db [:players])]
     (println (str "Creating player " id " (" (:email player) ")"))
-    (assoc-db db [:players id] (assoc player
-                                      :id id
-                                      :c-at (now)))
-    id))
+    (let [db-player (assoc player
+                   :id id
+                   :c-at (now)
+                   :u-at (now))]
+      (assoc-db db [:players id] db-player)
+      db-player)))
 
 (defn delete-player [db {:keys [id]}]
   (update-db db [:players] dissoc id))
@@ -41,6 +56,7 @@
   (let [id (->new-id db [:games])
         game {:id    id
               :c-at  (now)
+              :u-at (now)
               :turns []}]
     (println "Creating game" id)
     (assoc-db db [:games id] game)
@@ -66,7 +82,7 @@
 
 (defn create-turn
   ([db game player]
-   (println "Creating turn" (:id game) "." (get-next-turn-id game))
+   (println (str "Creating turn " (:id game) "." (get-next-turn-id game)))
    (update-db db [:games (:id game) :turns] conj {:player     (:id player)
                                                   :text-turn? (text-turn? game)
 
@@ -75,9 +91,9 @@
                                                   :u-at       (now)})))
 
 (defn update-turn [db game player content]
-  (let [turn (merge (pop-last-turn game) {:content content
-                                          :played? true
-                                          :u-at    (now)})]
+  (let [turn (spy (merge (spy (pop-last-turn game)) {:content content
+                                                     :played? true
+                                                     :u-at    (now)}))]
     (assert (= (:player turn) (:id player)))
     (assert (not (:played? turn)))
     (update-db db [:games (:id game) :turns] conj turn)))
@@ -88,22 +104,16 @@
         (map :player)
         set) id))
 
+(defn waiting? [game {player-id :id}]
+  (let [turn (peek-last-turn game)]
+    (and (= player-id (:player turn))
+         (not (:played? turn)))))
+
+(defn get-waiting-game [db player]
+  (some #(waiting? % player) (:games db)))
+
 (defn get-unplayed-game [db player]
   (some #(not (played? % player)) (:games db)))
 
-(defn get-game-without-times
-  [db game-id]
-  (dissoc (get-game db game-id) :c-at :u-at))
-
-(defn get-player-without-times
-  [db player-id]
-  (dissoc (get-player db player-id) :c-at :u-at))
-
-(defn get-turn-without-times
-  [db game-id turn-id]
-  (let [game (get-game db game-id)
-        turn (peek-last-turn game)]
-    (assert (= (:id turn) turn-id))
-    (dissoc turn :c-at :u-at)))
 
 
