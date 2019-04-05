@@ -8,32 +8,25 @@
 
 (def telegram-token (env :telegram-token))
 
-(defn start [sender msg]
-  (log/info "/start" msg)
-  (send/start sender (-> msg :from :id)))
-
-(defn help [sender msg]
-  (log/info "/help" msg)
-  (send/help sender (-> msg :from :id)))
-
 (defn play [msg]
   (log/info "/play" msg))
 
-(defn message-fn [msg]
-  (log/info "Intercepted message:" msg))
+(defn message-fn [sender {:keys [from text] :as msg}]
+  (let [player-id (:id from)]
+    (log/info player-id text)
+    (cond (= "/start" text)
+          (send/start sender player-id)
+          (= "/help" text)
+          (send/help sender player-id)
+          :default
+          (send/send-text sender player-id "Thx"))))
 
 (defn -main []
   (log/info "Starting")
   (let [sender (send/->Sender telegram-token)
         ;; db     (db/->Db db-spec)
         ;; epyc   (epyc/->Epyc db sender)
-
-        bot-api (fn [x] (h/handling x
-                                    (h/command-fn "start" (partial start sender))
-                                    (h/command-fn "help" (partial help sender))
-                                    (h/command-fn "play" play)
-                                    (h/message-fn message-fn)))
-        channel (p/start telegram-token bot-api {:timeout 65536})]
+        channel (p/start telegram-token (h/message-fn (partial message-fn sender)) {:timeout 65536})]
 
     (doall
      (repeatedly 10000000
