@@ -1,39 +1,61 @@
 (ns epyc.core
   (:gen-class)
-  (:require [clojure.edn :as edn]
+  (:require [clojure.tools.logging :as log]
             [clojure.java.io :as io]
-            [epyc.util :refer [spy]]
-            [epyc.email :as email]
-            [epyc.db :as db]
+            [epyc.text :as txt]
+            [morse.handlers :as h]
+            [morse.api :as t]
+            [morse.polling :as p]
             [environ.core :refer [env]]))
 
-(def start-data-filepath "resources/start-data.edn")
+(def telegram-token (env :telegram-token))
 
-(def players ["player1@email.com"
-                                        ;...
-              ])
+(defn send-text [id text]
+  (t/send-text telegram-token id {:parse_mode "Markdown"} text))
 
-(defn next-player [player]
-  (let [nexts   (concat (rest players) (take 1 players))
-        next-map (zipmap players nexts)]
-    (get next-map player)))
+(defn send-photo [id filename]
+  (t/send-photo telegram-token id (io/file (io/resource filename))))
 
-(defn -main
-  [& args]
-  (let [db                (db/->DbState (env :db-spec) (env :round-prefix))
-        messenger         (email/->EmailMessenger (env :imap-host)
-                                                  (env :smtp-host)
-                                                  (env :email-address)
-                                                  (env :email-password)
-                                                  (env :email-folder))]
-    #_(db/migrate-schema db (slurp "resources/migration.sql"))
-    #_(when-let [start-data (and (.exists (io/file start-data-filepath))
-                               (edn/read-string (slurp start-data-filepath)))]
-      (println "Rebuilding data...")
-      (db/drop-data db)
-      (db/load-data db start-data))
-    (let [messages (take 1 (email/get-messages messenger))]
-      (doseq [message messages]
-        (prn message)))))
+(defn start [msg]
+  (log/info "/start" msg)
+  (send-text (-> msg :from :id) txt/start))
 
+(defn help [msg]
+  (log/info "/help" msg)
+  (send-text (-> msg :from :id) txt/help))
+
+(defn play [msg]
+  (log/info "/play" msg)
+  (send-text (-> msg :from :id) "Let's play"))
+
+(defn message-fn [msg]
+  (log/info "Intercepted message:" msg)
+  (send-text (-> msg :from :id) "Yeah, I hear you."))
+
+(defn -main []
+  (log/info "Starting")
+  (let [
+        ;; sender (send/->Sender telegram-token)
+        ;; db     (db/->Db db-spec)
+        ;; epyc   (epyc/->Epyc db sender)
+        bot-api (h/handlers
+                 (h/command-fn "start" start)
+                 (h/command-fn "help" help)
+                 (h/command-fn "play" play)
+                 ;; Handlers will be applied until there are any of those
+                 ;; returns non-nil result processing update.
+                 ;; Note that sending stuff to the user returns non-nil
+                 ;; response from Telegram API.
+                 ;; So match-all catch-through case would look something like this:
+                 (h/message-fn message-fn))]
+    (def channel (p/start telegram-token bot-api {:timeout 65536}))
+
+    ;; TODO: make the Telegram thread non-background instead
+    (doall
+     (repeatedly 10000000
+                 (fn []
+                   (log/info "Sleeping")
+                   (Thread/sleep 60000))))
+
+    (log/info "Bye")))
 
