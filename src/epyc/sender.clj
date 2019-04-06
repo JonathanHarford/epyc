@@ -1,8 +1,7 @@
 (ns epyc.sender
   (:require
    [clojure.java.io :as io]
-            [morse.api :as t]
-            [epyc.text :as txt]))
+            [morse.api :as t]))
 
 (defprotocol ISender
   (send-text [this id text])
@@ -16,12 +15,6 @@
 
     (send-photo [{token :token} id filename]
     (t/send-photo token id (io/file (io/resource filename)))))
-
-(defn start [sender id]
-  (send-text sender id txt/start))
-
-(defn help [sender id]
-  (send-text sender id txt/help))
 
 ;; (defn text-turn [sender id turn]
 ;;   (do (send-text sender id txt/request-text)

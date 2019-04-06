@@ -9,21 +9,17 @@
 
 (def telegram-token (env :telegram-token))
 
-(defn message-fn [{:keys [sender epyc]} {:keys [from text photo] :as msg}]
+(defn message-fn [epyc {:keys [from text photo] :as msg}]
   (let [player-id (:id from)]
     (log/info player-id text)
-    (case text
-      "/start" (send/start sender player-id)
-      "/help"  (send/help sender player-id)
-      (epyc/receive-turn epyc player-id text photo))))
+    (epyc/receive-message epyc player-id text photo)))
 
 (defn -main []
   (log/info "Starting")
   (let [sender (send/->Sender telegram-token)
         ;; db     (db/->Db db-spec)
         epyc   (epyc/->Epyc sender)
-        handler (h/message-fn (partial message-fn {:sender sender
-                                                   :epyc epyc}))
+        handler (h/message-fn (partial message-fn epyc))
         channel (p/start telegram-token handler {:timeout 65536})]
 
     (doall
