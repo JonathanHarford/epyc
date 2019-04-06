@@ -10,9 +10,9 @@
 (def telegram-token (env :telegram-token))
 
 (defn message-fn [epyc {:keys [from text photo] :as msg}]
-  (let [player-id (:id from)]
-    (log/info player-id text)
-    (epyc/receive-message epyc player-id text photo)))
+  (let [player (select-keys from [:id :first_name :last_name])]
+    (log/info (:id player) text)
+    (epyc/receive-message epyc player text photo)))
 
 (defn -main []
   (log/info "Starting")

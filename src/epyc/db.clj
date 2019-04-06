@@ -25,23 +25,26 @@
             first
             :count
             zero?)
-      (do (log/info "Migration: START")
+      (do (log/info "DB/Migration: START")
           (jdbc/execute! spec [schema])
-          (log/info "Migration: DONE"))
+          (log/info "DB/Migration: DONE"))
       (log/warn "Can't migrate if tables exist! Aborting.")))
   (drop-data [{spec :spec}]
+    (log/info "DB: Dropping all tables.")
     ;; Is there a simpler way to do multiple commands?
     (jdbc/execute! spec [(str/join ";"
                                    ["TRUNCATE TABLE player CASCADE"
                                     "TRUNCATE TABLE game CASCADE"
                                     "TRUNCATE TABLE turn CASCADE"])]))
   (new-player [{spec :spec}
-               {:as player :keys [id first_name last_name]}]
+               {:keys [id first_name last_name]}]
     (log/info "Creating" id first_name last_name)
-    (jdbc/insert! spec :player player))
+    (jdbc/insert! spec :player {:p_id       id
+                                :first_name first_name
+                                :last_name  last_name}))
 
   (get-player [{spec :spec} player-id]
-    (jdbc/query spec ["SELECT * FROM player WHERE id = ?"] player-id))
+    (first (jdbc/query spec ["SELECT p_id as id, first_name, last_name FROM player WHERE p_id = ?" player-id])))
 
   (get-turn [{spec :spec} player-id]
     nil))

@@ -11,36 +11,47 @@
     [ch]
   epyc.sender/ISender
   (send-text [{ch :ch} player-id text]
-    (>!! ch [:send-text player-id text]))
+    (>!! ch [player-id text]))
   (send-photo [{ch :ch} player-id photo]
-    (>!! ch [:send-photo player-id photo])))
+    (>!! ch [player-id photo])))
 
-(def player {:id 42})
-
-(def turn {:player-id  42
-           :preceding  nil
-           :text-turn? true})
+(def arthur {:id         13
+           :first_name "Arthur"
+           :last_name  "Dent"})
+(def ford {:id         42
+           :first_name "Ford"
+           :last_name  "Prefect"})
+(def zaphod {:id         1000
+             :first_name "Zaphod"
+             :last_name  "Beeblebrox"})
 
 (defn create-epyc
-  "Create an EPYC with a mocked sender"
+  "Create an EPYC with a test db and a mocked sender. Returns itself, a db, and the channel for the sender."
   []
   (let [sender (->MockSender (chan (buffer 10)))
         db     (db/->Db "postgresql://localhost:5432/epyctest")]
     (db/migrate-schema db (slurp "resources/migration.sql"))
     (db/drop-data db)
-    [(epyc/->Epyc db sender)
-     (:ch sender)]))
+    [(epyc/->Epyc db sender) db (:ch sender)]))
 
-(deftest receiving-help-command-returns-help-text
+(deftest receiving-commands
+  (let [[epyc db sender-ch]   (create-epyc)]
+    (testing "/start creates player"
+      (epyc/receive-message epyc arthur "/start" nil)
+      (is (= arthur
+             (db/get-player db (:id arthur))))
+      (is (= [(:id arthur) txt/start]
+             (<!! sender-ch))))
+    (testing "/help"
+      (epyc/receive-message epyc arthur "/help" nil)
+      (is (= [(:id arthur) txt/help]
+             (<!! sender-ch))))))
+
+#_(deftest receiving-play-request-creates-player
   (let [[epyc sender-ch]   (create-epyc)]
-    (epyc/receive-message epyc (:id player) "/help" nil)
-    (is (= [:send-text (:id player) txt/help]
-           (<!! sender-ch)))))
-
-;; (deftest receiving-play-request-creates-player
-;;   (let [epyc   (create-epyc)]
-;;     (is (= [(:id player) "uh joining game?"]
-;;            (epyc/receive-message epyc (:id player) "/play" nil)))
-;;     (is (= player
-;;            (epyc/get-player))))
-;;   )
+    (epyc/receive-message epyc (:id arthur) "/play" nil)
+    (is (= [(:id player) "uh joining game?"]
+           (epyc/receive-message epyc (:id arthur) "/play" nil)))
+    (is (= arthur
+           (epyc/get-player))))
+  )
