@@ -4,7 +4,10 @@ FIXME: description
 
 ## Installation
 
-TODO
+`psql postgres -c"CREATE DATABASE epyc"`
+
+To run tests:
+`psql postgres -c"CREATE DATABASE epyctest"`
 
 ## Usage
 

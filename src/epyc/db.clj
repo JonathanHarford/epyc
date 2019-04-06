@@ -1,25 +1,50 @@
 (ns epyc.db
-  (:require [clojure.java.jdbc :as jdbc]))
+  (:require [clojure.string :as str]
+            [clojure.tools.logging :as log]
+            [clojure.java.jdbc :as jdbc]))
 
-#_(defprotocol IDb
+(defprotocol IDb
   (migrate-schema [this schema])
   (drop-data [this])
-  (new-player [this id first-name last-name])
+  (new-player [this player])
   (get-player [this id])
-  (new-turn [this player])
-  (get-turn [this player])
-  (play-turn [this player photo text]))
+  #_(new-turn [this player])
+  (get-turn [this player-id])
+  #_(play-turn [this player photo text]))
 
-#_(defrecord Db
-    [db-spec]
+(defrecord Db
+    [spec]
   IDb
-  (migrate-schema [this schema] nil)
-  (drop-data [this] nil)
-  (new-player [this id first-name last-name] nil)
-  (get-player [this id] nil)
-  (new-turn [this player] nil)
-  (get-turn [this player] nil)
-  (play-turn [this player photo text] nil))
+  (migrate-schema [{spec :spec} schema]
+    (if (-> (jdbc/query
+             spec
+             [(str "SELECT COUNT(*) "
+                   "FROM information_schema.tables "
+                   "WHERE table_name IN"
+                   "('turn', 'player')")])
+            first
+            :count
+            zero?)
+      (do (log/info "Migration: START")
+          (jdbc/execute! spec [schema])
+          (log/info "Migration: DONE"))
+      (log/warn "Can't migrate if tables exist! Aborting.")))
+  (drop-data [{spec :spec}]
+    ;; Is there a simpler way to do multiple commands?
+    (jdbc/execute! spec [(str/join ";"
+                                   ["TRUNCATE TABLE player CASCADE"
+                                    "TRUNCATE TABLE game CASCADE"
+                                    "TRUNCATE TABLE turn CASCADE"])]))
+  (new-player [{spec :spec}
+               {:as player :keys [id first_name last_name]}]
+    (log/info "Creating" id first_name last_name)
+    (jdbc/insert! spec :player player))
+
+  (get-player [{spec :spec} player-id]
+    (jdbc/query spec ["SELECT * FROM player WHERE id = ?"] player-id))
+
+  (get-turn [{spec :spec} player-id]
+    nil))
 
 
 
