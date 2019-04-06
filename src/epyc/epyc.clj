@@ -1,15 +1,18 @@
 (ns epyc.epyc
   (:require [epyc.sender :as send]))
 
-#_(defprotocol IEpyc
-  (send-turn [this turn])
-  (join-game [this player-id])
-  (play-turn [this player-id photo text]))
+(defprotocol IEpyc
+  (receive-turn [this turn text photo])
+  #_(send-turn [this turn])
+  #_(join-game [this player-id])
+  #_(play-turn [this player-id photo text]))
 
-#_(defrecord Epyc
-    [db]
+(defrecord Epyc
+    [sender]
   IEpyc
-  (send-turn [{db     :db
+  (receive-turn [{sender :sender} player-id text photo]
+    (send/send-text sender player-id "Turn received") )
+  #_(send-turn [{db     :db
                sender :sender} turn]
     (let [player-id (-> turn :player-id)]
       (cond
@@ -21,7 +24,7 @@
 
         :else
         (send/photo-turn player-id turn))))
-  (join-game [{db     :db
+  #_(join-game [{db     :db
                sender :sender} player-id]
     (let [player (player/get db player-id)]
       (if-let [active-turn (turn/get db player-id)]
@@ -30,7 +33,7 @@
           (send-turn active-turn))
         (let [active-turn (turn/new db player-id)]
           (send-turn active-turn)))))
-  (play-turn [{db     :db
+  #_(play-turn [{db     :db
                sender :sender} player-id photo text]
     (let [player (player/get db player-id)
           turn   (turn/get player-id)]
