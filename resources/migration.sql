@@ -30,6 +30,8 @@ CREATE TABLE turn (
   ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 CREATE INDEX idx_turn ON turn (t_id, status);
+CREATE INDEX idx_game_turn ON turn (g_id);
+CREATE INDEX idx_player_turn ON turn (p_id, status);
 
 CREATE OR REPLACE FUNCTION update_row_modified_function_()
   RETURNS TRIGGER
