@@ -7,6 +7,7 @@
 
 (def already-playing "You're already playing a turn!")  ; TODO resend last turn
 
+(def first-turn "First turn!")
 (def request-text "Gimme text")
 (def request-photo "Gimme photo")
 (def confused "I'm confused.")
