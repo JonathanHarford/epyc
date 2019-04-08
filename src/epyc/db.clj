@@ -17,19 +17,17 @@
   (get-game [this game-id]))
 
 (defn ^:private db-turn->turn
-  [{:keys [t_id p_id g_id status text_turn preceding]}]
+  [{:keys [t_id p_id g_id t_status text_turn preceding]}]
   (merge {:id         t_id
           :player-id  p_id
           :game-id    g_id
-          :status     status
+          :status     t_status
           :text-turn? text_turn}
          (when preceding
            {:preceding preceding})))
 
-(defn ^:private get-preceding-turn
-  [spec turn]
-  (let [turns (:turns (get-game spec (:game-id turn)))]
-    (last turns)))
+(defn ^:private get-last-turn [{turns :turns}]
+  (last turns))
 
 (defrecord Db
     [spec]
@@ -67,7 +65,9 @@
 
   (get-player [{spec :spec} player-id]
     (log/info "Getting player" player-id)
-    (first (jdbc/query spec ["SELECT p_id as id, first_name, last_name FROM player WHERE p_id = ?" player-id])))
+    (first (jdbc/query spec [(str "SELECT p_id as id, first_name, last_name "
+                                  "FROM player WHERE p_id = ?")
+                             player-id])))
 
   (new-game [{spec :spec} player-id]
     (log/info "Creating game for" player-id)
@@ -76,30 +76,36 @@
          first
          :g_id))
 
-  ;; TODO: account for game status
   (get-game [{spec :spec} game-id]
     (log/info "Getting game" game-id)
-    {:id    game-id
-     :turns (mapv db-turn->turn
-                  (jdbc/query spec [(str "SELECT t_id, p_id, g_id, "
-                                         "status, text_turn "
-                                         "FROM turn WHERE g_id = ?")
-                                    game-id]))})
+    (let [game-and-turns (jdbc/query spec [(str "SELECT g.g_id, g.status g_status, t.t_id, "
+                                                "t.p_id, t.status t_status, t.text_turn "
+                                                "FROM turn t left join game g "
+                                                "on t.g_id = g.g_id "
+                                                "WHERE g.g_id = ?")
+                                           game-id])]
+      {:id     game-id
+       :status (-> game-and-turns first :g_status)
+       :turns  (mapv db-turn->turn game-and-turns)}))
 
-  (new-turn [{spec :spec} game-id player-id]
+  (new-turn [{spec :spec
+              :as  this} game-id player-id]
     (log/info "Creating turn in game" game-id "for" player-id)
-    (some->> {:p_id      player-id
-              :g_id      game-id
-              :text_turn true ;; TODO
-              }
-             (jdbc/insert! spec :turn)
-             first
-             db-turn->turn))
+    (let [game (get-game this game-id)]
+      (some->> {:p_id      player-id
+                :g_id      game-id
+                :text_turn (-> game
+                               get-last-turn
+                               :text-turn?
+                               not)}
+               (jdbc/insert! spec :turn)
+               first
+               db-turn->turn)))
 
   (get-turn [{spec :spec} player-id]
     (log/info "Getting turn for" player-id)
     (some-> (jdbc/query spec [(str "SELECT t_id, p_id, g_id, "
-                                   "status, text_turn "
+                                   "status t_status, text_turn "
                                    "FROM turn WHERE p_id = ? "
                                    "AND status = 'unplayed'")
                               player-id])

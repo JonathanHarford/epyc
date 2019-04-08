@@ -58,6 +58,7 @@
         (is (= expected-turn
                (db/get-turn db (:id arthur))))
         (is (= {:id  1
+                :status "active"
                 :turns [expected-turn]}
                (db/get-game db 1)))
         (is (= [(:id arthur) txt/first-turn]
