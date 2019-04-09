@@ -29,16 +29,16 @@
   "Attach a player to a game, creating a new game if necessary"
   [{db     :db
     sender :sender
-    :as    this} player-id]
+    :as    ctx} player-id]
   (log/info "join-game")
   (if-let [turn (db/get-turn db player-id)]
     (do
       (send/send-text sender player-id txt/already-playing)
-      (send-turn this turn))
+      (send-turn ctx turn))
     (let [game-id (or #_(first (db/get-unplayed-games db player-id))
                       (db/new-game db player-id))
           turn    (db/new-turn db game-id player-id)]
-      (send-turn this turn))))
+      (send-turn ctx turn))))
 
 (defn play-turn
   "Convert a turn from `unplayed` to `played`"
@@ -54,9 +54,9 @@
 
 (defn receive-message
   "Respond to a message received from a player"
-  ([this player text]
-   (receive-message this player text nil))
-  ([{:as    this
+  ([ctx player text]
+   (receive-message ctx player text nil))
+  ([{:as    ctx
      sender :sender
      db     :db} player text photo]
    (case text
@@ -68,8 +68,8 @@
      (send/send-text sender (:id player) txt/help)
 
      "/play"
-     (join-game this (:id player))
+     (join-game ctx (:id player))
 
      ;; default
      (prn "todo: play-turn")
-     #_(play-turn this (:id player) text photo))))
+     #_(play-turn ctx (:id player) text photo))))
