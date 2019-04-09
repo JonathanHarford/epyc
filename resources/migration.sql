@@ -20,7 +20,7 @@ CREATE TABLE turn (
   g_id INTEGER NOT NULL,
   status VARCHAR (10) NOT NULL DEFAULT 'unplayed',
   text_turn BOOLEAN NOT NULL,
-  msg_id INTEGER,  -- ID of telegram message
+  m_id INTEGER,  -- ID of telegram message
   text VARCHAR (255),
   filename VARCHAR (40),
   c_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -55,6 +55,7 @@
                            :player-id  (:id arthur)
                            :status     "unplayed"
                            :game-id    1
+                           :message-id nil
                            :text-turn? true
                            :text       nil}]
         (is (= expected-turn

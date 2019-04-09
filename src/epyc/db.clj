@@ -5,10 +5,11 @@
             [epyc.util :refer [spy]]))
 
 (defn ^:private db-turn->turn
-  [{:keys [t_id p_id g_id t_status text_turn text]}]
+  [{:keys [t_id p_id g_id m_id t_status text_turn text]}]
   (merge {:id         t_id
           :player-id  p_id
           :game-id    g_id
+          :message-id m_id
           :status     t_status
           :text-turn? text_turn
           :text       text}))
@@ -72,7 +73,7 @@
   (log/info "Getting game" game-id)
   (let [turns (jdbc/query dbspec
                           [(str "SELECT g.g_id, g.status g_status, t.t_id, "
-                                "t.p_id, t.status t_status, t.text_turn "
+                                "t.p_id, t.m_id, t.status t_status, t.text_turn "
                                 "FROM turn t left join game g "
                                 "on t.g_id = g.g_id "
                                 "WHERE g.g_id = ?")
@@ -99,7 +100,7 @@
 (defn get-turn
   [dbspec player-id]
   (log/info "Getting turn for" player-id)
-  (some->> [(str "SELECT t_id, p_id, g_id, "
+  (some->> [(str "SELECT t_id, p_id, g_id, m_id,"
                  "status t_status, text_turn, text "
                  "FROM turn WHERE p_id = ? "
                  "AND status = 'unplayed'")
