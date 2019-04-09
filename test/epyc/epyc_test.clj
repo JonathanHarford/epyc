@@ -65,7 +65,47 @@
                 :turns  [expected-turn]}
                (db/get-game db 1)))
         (is (= [(:id arthur) txt/first-turn]
-               (<!! sender-ch)))))
+               (<!! sender-ch))))
+
+      (testing "/play when epyc is waiting for turn"
+        (epyc/receive-message epyc arthur "/play" nil)
+        (let [expected-turn {:id         1
+                             :player-id  (:id arthur)
+                             :status     "unplayed"
+                             :game-id    1
+                             :message-id nil
+                             :text-turn? true
+                             :text       nil}]
+          (is (= expected-turn
+                 (db/get-turn db (:id arthur))))
+          (is (= {:id     1
+                  :status "active"
+                  :turns  [expected-turn]}
+                 (db/get-game db 1)))
+          (is (= [(:id arthur) txt/already-playing]
+                 (<!! sender-ch)))
+          (is (= [(:id arthur) txt/first-turn]
+                 (<!! sender-ch)))))
+      (testing "Second player /play with no open games"
+        (epyc/receive-message epyc ford "/start" nil)
+        (is (= [(:id ford) txt/start]
+               (<!! sender-ch)))
+        (epyc/receive-message epyc ford "/play" nil)
+        (let [expected-turn {:id         2
+                             :player-id  (:id ford)
+                             :status     "unplayed"
+                             :game-id    2
+                             :message-id nil
+                             :text-turn? true
+                             :text       nil}]
+          (is (= expected-turn
+                 (db/get-turn db (:id ford))))
+          (is (= {:id     2
+                  :status "active"
+                  :turns  [expected-turn]}
+                 (db/get-game db 2)))
+          (is (= [(:id ford) txt/first-turn]
+                 (<!! sender-ch))))))
     #_(testing "Completing a turn"
       (epyc/receive-message epyc arthur "t1t" nil)
       (let [expected-turn {:id         1

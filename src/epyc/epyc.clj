@@ -32,10 +32,9 @@
     :as    this} player-id]
   (log/info "join-game")
   (if-let [turn (db/get-turn db player-id)]
-    (prn "todo" turn)
-    ;; (do
-    ;;   (send/send-text sender player-id txt/already-playing)
-    ;;   (send-turn this turn))
+    (do
+      (send/send-text sender player-id txt/already-playing)
+      (send-turn this turn))
     (let [game-id (or #_(first (db/get-unplayed-games db player-id))
                       (db/new-game db player-id))
           turn    (db/new-turn db game-id player-id)]
@@ -55,20 +54,22 @@
 
 (defn receive-message
   "Respond to a message received from a player"
-  [{:as    this
-    sender :sender
-    db     :db} player text photo]
-  (case text
-    "/start"
-    (do (db/new-player db player)
-        (send/send-text sender (:id player) txt/start))
+  ([this player text]
+   (receive-message this player text nil))
+  ([{:as    this
+     sender :sender
+     db     :db} player text photo]
+   (case text
+     "/start"
+     (do (db/new-player db player)
+         (send/send-text sender (:id player) txt/start))
 
-    "/help"
-    (send/send-text sender (:id player) txt/help)
+     "/help"
+     (send/send-text sender (:id player) txt/help)
 
-    "/play"
-    (join-game this (:id player))
+     "/play"
+     (join-game this (:id player))
 
-    ;; default
-    (prn "todo: play-turn")
-    #_(play-turn this (:id player) text photo)))
+     ;; default
+     (prn "todo: play-turn")
+     #_(play-turn this (:id player) text photo))))

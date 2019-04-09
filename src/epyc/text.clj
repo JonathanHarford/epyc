@@ -8,7 +8,7 @@
   "helping!") ; TODO improve much
 
 (def already-playing "You're already playing a turn!")
-(def first-turn "First turn!")
+(def first-turn "Gimme first turn text!")
 (def turn-done "Thanks for turn")
 (def request-text "Gimme text")
 (def request-photo "Gimme photo")
