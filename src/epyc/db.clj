@@ -11,20 +11,19 @@
   (get-player [this id])
   (new-turn [this game-id player-id])
   (get-turn [this player-id])
-  #_(play-turn [this player photo text])
+  #_(play-turn [this turn-id photo text])
   (new-game [this player-id]
     "Creates new turn in new game for player")
   (get-game [this game-id]))
 
 (defn ^:private db-turn->turn
-  [{:keys [t_id p_id g_id t_status text_turn preceding]}]
+  [{:keys [t_id p_id g_id t_status text_turn text]}]
   (merge {:id         t_id
           :player-id  p_id
           :game-id    g_id
           :status     t_status
-          :text-turn? text_turn}
-         (when preceding
-           {:preceding preceding})))
+          :text-turn? text_turn
+          :text text}))
 
 (defn ^:private get-last-turn [{turns :turns}]
   (last turns))
@@ -105,12 +104,18 @@
   (get-turn [{spec :spec} player-id]
     (log/info "Getting turn for" player-id)
     (some-> (jdbc/query spec [(str "SELECT t_id, p_id, g_id, "
-                                   "status t_status, text_turn "
+                                   "status t_status, text_turn, text "
                                    "FROM turn WHERE p_id = ? "
                                    "AND status = 'unplayed'")
                               player-id])
             first
-            db-turn->turn)))
+            db-turn->turn))
+
+  #_(play-turn [{spec :spec} turn-id photo text]
+    (log/info "Playing turn" turn-id (if photo photo text))
+    (jdbc/update! spec :turn {:text  text}  ; TODO: photo
+                  [(str "WHERE t_id = ? AND status = 'unplayed'")
+                   turn-id])))
 
 
 

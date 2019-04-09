@@ -54,14 +54,31 @@
                            :player-id  (:id arthur)
                            :status     "unplayed"
                            :game-id    1
-                           :text-turn? true}]
+                           :text-turn? true
+                           :text       nil}]
         (is (= expected-turn
                (db/get-turn db (:id arthur))))
-        (is (= {:id  1
+        (is (= {:id     1
                 :status "active"
-                :turns [expected-turn]}
+                :turns  [expected-turn]}
                (db/get-game db 1)))
         (is (= [(:id arthur) txt/first-turn]
+               (<!! sender-ch)))))
+    #_(testing "Completing a turn"
+      (epyc/receive-message epyc arthur "t1t" nil)
+      (let [expected-turn {:id         1
+                           :player-id  (:id arthur)
+                           :status     "done"
+                           :game-id    1
+                           :text-turn? true
+                           :text       "t1t"}]
+        (is (= expected-turn
+               (db/get-turn db (:id arthur))))
+        (is (= {:id     1
+                :status "active"
+                :turns  [expected-turn]}
+               (db/get-game db 1)))
+        (is (= [(:id arthur) txt/turn-done]
                (<!! sender-ch)))))))
 
 

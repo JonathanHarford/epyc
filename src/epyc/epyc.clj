@@ -39,7 +39,8 @@
       (join-game this (:id player))
 
       ;; default
-      (play-turn this (:id player) text photo)))
+      (prn "todo: play-turn")
+      #_(play-turn this (:id player) text photo)))
 
   (send-turn [{sender :sender} turn]
     (let [player-id (-> turn :player-id)]
@@ -70,12 +71,12 @@
 
   (play-turn [{db     :db
                sender :sender} player-id text photo]
-    (prn "todo")
-    #_(let [player (player/get db player-id)
-            turn   (turn/get player-id)]
+    (prn "todo: play-turn")
+    #_(let [player (db/get-player db player-id)
+          turn (db/get-turn db player-id)]
         (if turn
-          (turn/play turn player-id photo text)
-          (send/confused player)))))
+          (db/play-turn (:id turn) photo text)
+          (send/confused sender player)))))
 
 
 

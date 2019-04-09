@@ -9,6 +9,7 @@
 
 (def already-playing "You're already playing a turn!")
 (def first-turn "First turn!")
+(def turn-done "Thanks for turn")
 (def request-text "Gimme text")
 (def request-photo "Gimme photo")
 (def confused "I'm confused.")
