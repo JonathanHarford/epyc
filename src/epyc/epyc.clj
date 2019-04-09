@@ -58,7 +58,6 @@
   [{:as    this
     sender :sender
     db     :db} player text photo]
-  (prn this)
   (case text
     "/start"
     (do (db/new-player db player)
