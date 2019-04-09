@@ -19,7 +19,7 @@
 (defn -main []
   (log/info "Starting")
   (let [sender (send/->Sender telegram-token)
-        db     (db/->Db db-spec)
+        db     db-spec
         epyc   (epyc/->Epyc db sender)
         handler (h/message-fn (partial message-fn epyc))
         channel (p/start telegram-token handler {:timeout 65536})]

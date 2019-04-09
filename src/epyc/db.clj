@@ -4,18 +4,6 @@
             [clojure.java.jdbc :as jdbc]
             [epyc.util :refer [spy]]))
 
-(defprotocol IDb
-  (migrate-schema [this schema])
-  (drop-data [this])
-  (new-player [this player])
-  (get-player [this id])
-  (new-turn [this game-id player-id])
-  (get-turn [this player-id])
-  #_(play-turn [this turn-id photo text])
-  (new-game [this player-id]
-    "Creates new turn in new game for player")
-  (get-game [this game-id]))
-
 (defn ^:private db-turn->turn
   [{:keys [t_id p_id g_id t_status text_turn text]}]
   (merge {:id         t_id
@@ -23,99 +11,103 @@
           :game-id    g_id
           :status     t_status
           :text-turn? text_turn
-          :text text}))
+          :text       text}))
 
 (defn ^:private get-last-turn [{turns :turns}]
   (last turns))
 
-(defrecord Db
-    [spec]
-  IDb
+(defn migrate-schema [dbspec schema]
+  (if (-> (jdbc/query
+           dbspec
+           [(str "SELECT COUNT(*) "
+                 "FROM information_schema.tables "
+                 "WHERE table_name IN"
+                 "('turn', 'player')")])
+          first
+          :count
+          zero?)
+    (do (log/info "DB: Migrating")
+        (jdbc/execute! dbspec [schema]))
+    (log/warn "Can't migrate if tables exist! Aborting.")))
 
-  (migrate-schema [{spec :spec} schema]
-    (if (-> (jdbc/query
-             spec
-             [(str "SELECT COUNT(*) "
-                   "FROM information_schema.tables "
-                   "WHERE table_name IN"
-                   "('turn', 'player')")])
-            first
-            :count
-            zero?)
-      (do (log/info "DB: Migrating")
-          (jdbc/execute! spec [schema]))
-      (log/warn "Can't migrate if tables exist! Aborting.")))
+(defn drop-data
+  [dbspec]
+  (log/info "DB: Truncating tables.")
+  ;; Is there a simpler way to do multiple commands?
+  (jdbc/execute! dbspec [(str/join ";"
+                                 ["DROP TABLE player CASCADE"
+                                  "DROP TABLE game CASCADE"
+                                  "DROP TABLE turn CASCADE"])]))
 
-  (drop-data [{spec :spec}]
-    (log/info "DB: Truncating tables.")
-    ;; Is there a simpler way to do multiple commands?
-    (jdbc/execute! spec [(str/join ";"
-                                   ["DROP TABLE player CASCADE"
-                                    "DROP TABLE game CASCADE"
-                                    "DROP TABLE turn CASCADE"])]))
-
-  (new-player [{spec :spec}
-               {:keys [id first_name last_name]}]
-    (log/info "Creating" id first_name last_name)
-    (jdbc/insert! spec :player {:p_id       id
-                                :first_name first_name
-                                :last_name  last_name}))
+(defn new-player
+  [dbspec
+   {:keys [id first_name last_name]}]
+  (log/info "Creating" id first_name last_name)
+  (jdbc/insert! dbspec :player {:p_id       id
+                              :first_name first_name
+                              :last_name  last_name}))
 
 
-  (get-player [{spec :spec} player-id]
-    (log/info "Getting player" player-id)
-    (first (jdbc/query spec [(str "SELECT p_id as id, first_name, last_name "
-                                  "FROM player WHERE p_id = ?")
-                             player-id])))
+(defn get-player
+  [dbspec player-id]
+  (log/info "Getting player" player-id)
+  (first (jdbc/query dbspec [(str "SELECT p_id as id, first_name, last_name "
+                                "FROM player WHERE p_id = ?")
+                           player-id])))
 
-  (new-game [{spec :spec} player-id]
-    (log/info "Creating game for" player-id)
-    (->> {:status "active"}
-         (jdbc/insert! spec :game)
-         first
-         :g_id))
+(defn new-game
+  [dbspec player-id]
+  (log/info "Creating game for" player-id)
+  (->> {:status "active"}
+       (jdbc/insert! dbspec :game)
+       first
+       :g_id))
 
-  (get-game [{spec :spec} game-id]
-    (log/info "Getting game" game-id)
-    (let [game-and-turns (jdbc/query spec [(str "SELECT g.g_id, g.status g_status, t.t_id, "
-                                                "t.p_id, t.status t_status, t.text_turn "
-                                                "FROM turn t left join game g "
-                                                "on t.g_id = g.g_id "
-                                                "WHERE g.g_id = ?")
-                                           game-id])]
-      {:id     game-id
-       :status (-> game-and-turns first :g_status)
-       :turns  (mapv db-turn->turn game-and-turns)}))
+(defn get-game
+  [dbspec game-id]
+  (log/info "Getting game" game-id)
+  (let [game-and-turns (jdbc/query dbspec [(str "SELECT g.g_id, g.status g_status, t.t_id, "
+                                              "t.p_id, t.status t_status, t.text_turn "
+                                              "FROM turn t left join game g "
+                                              "on t.g_id = g.g_id "
+                                              "WHERE g.g_id = ?")
+                                         game-id])]
+    {:id     game-id
+     :status (-> game-and-turns first :g_status)
+     :turns  (mapv db-turn->turn game-and-turns)}))
 
-  (new-turn [{spec :spec
-              :as  this} game-id player-id]
-    (log/info "Creating turn in game" game-id "for" player-id)
-    (let [game (get-game this game-id)]
-      (some->> {:p_id      player-id
-                :g_id      game-id
-                :text_turn (-> game
-                               get-last-turn
-                               :text-turn?
-                               not)}
-               (jdbc/insert! spec :turn)
-               first
-               db-turn->turn)))
+(defn new-turn
+  "Creates new turn in new game for player"
+  [dbspec game-id player-id]
+  (log/info "Creating turn in game" game-id "for" player-id)
+  (let [game (get-game dbspec game-id)]
+    (some->> {:p_id      player-id
+              :g_id      game-id
+              :text_turn (-> game
+                             get-last-turn
+                             :text-turn?
+                             not)}
+             (jdbc/insert! dbspec :turn)
+             first
+             db-turn->turn)))
 
-  (get-turn [{spec :spec} player-id]
-    (log/info "Getting turn for" player-id)
-    (some-> (jdbc/query spec [(str "SELECT t_id, p_id, g_id, "
-                                   "status t_status, text_turn, text "
-                                   "FROM turn WHERE p_id = ? "
-                                   "AND status = 'unplayed'")
-                              player-id])
-            first
-            db-turn->turn))
+(defn get-turn
+  [dbspec player-id]
+  (log/info "Getting turn for" player-id)
+  (some-> (jdbc/query dbspec [(str "SELECT t_id, p_id, g_id, "
+                                 "status t_status, text_turn, text "
+                                 "FROM turn WHERE p_id = ? "
+                                 "AND status = 'unplayed'")
+                            player-id])
+          first
+          db-turn->turn))
 
-  #_(play-turn [{spec :spec} turn-id photo text]
+#_(defn play-turn
+    [dbspec turn-id photo text]
     (log/info "Playing turn" turn-id (if photo photo text))
-    (jdbc/update! spec :turn {:text  text}  ; TODO: photo
+    (jdbc/update! dbspec :turn {:text text}  ; TODO: photo
                   [(str "WHERE t_id = ? AND status = 'unplayed'")
-                   turn-id])))
+                   turn-id]))
 
 
 
