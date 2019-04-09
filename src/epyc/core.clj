@@ -1,7 +1,6 @@
 (ns epyc.core
   (:gen-class)
   (:require [clojure.tools.logging :as log]
-            [epyc.db :as db]
             [epyc.epyc :as epyc]
             [epyc.sender :as send]
             [morse.handlers :as h]
@@ -18,9 +17,9 @@
 
 (defn -main []
   (log/info "Starting")
-  (let [sender (send/->Sender telegram-token)
-        db     db-spec
-        epyc   (epyc/->Epyc db sender)
+  (let [sender  (send/->Sender telegram-token)
+        epyc    {:db     db-spec
+                 :sender sender}
         handler (h/message-fn (partial message-fn epyc))
         channel (p/start telegram-token handler {:timeout 65536})]
 

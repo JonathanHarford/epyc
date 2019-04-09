@@ -30,10 +30,11 @@
   "Create an EPYC with a test db and a mocked sender. Returns itself, a db, and the channel for the sender."
   []
   (let [sender (->MockSender (chan (buffer 10)))
-        dbspec     "postgresql://localhost:5432/epyctest"]
+        dbspec "postgresql://localhost:5432/epyctest"]
     (db/drop-data dbspec)
     (db/migrate-schema dbspec (slurp "resources/migration.sql"))
-    [(epyc/->Epyc dbspec sender) dbspec (:ch sender)]))
+    [{:db     dbspec
+      :sender sender} dbspec (:ch sender)]))
 
 (deftest receiving-commands
   (log/info "-----------------")

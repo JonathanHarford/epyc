@@ -40,8 +40,7 @@
                                   "DROP TABLE turn CASCADE"])]))
 
 (defn new-player
-  [dbspec
-   {:keys [id first_name last_name]}]
+  [dbspec {:keys [id first_name last_name]}]
   (log/info "Creating" id first_name last_name)
   (jdbc/insert! dbspec :player {:p_id       id
                               :first_name first_name
