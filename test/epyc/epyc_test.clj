@@ -14,7 +14,9 @@
   (send-text [{ch :ch} player-id text]
     (async/>!! ch [player-id text]))
   (send-photo [{ch :ch} player-id photo]
-    (async/>!! ch [player-id photo])))
+    (async/>!! ch [player-id photo]))
+  (forward-message [{ch :ch} player-id message-id]
+    (async/>!! ch [player-id message-id])))
 
 (defn <!!t
   "Same as <!!, but waits 0.5s"
@@ -22,8 +24,8 @@
   (first (async/alts!! [(async/timeout 500) ch])))
 
 (def arthur {:id         13
-           :first_name "Arthur"
-           :last_name  "Dent"})
+             :first_name "Arthur"
+             :last_name  "Dent"})
 (def ford {:id         42
            :first_name "Ford"
            :last_name  "Prefect"})
@@ -112,20 +114,20 @@
           (is (= [(:id ford) txt/first-turn]
                  (<!!t sender-ch))))))
     #_(testing "Completing a turn"
-      (epyc/receive-message epyc arthur "t1t" nil)
-      (let [expected-turn {:id         1
-                           :player-id  (:id arthur)
-                           :status     "done"
-                           :game-id    1
-                           :text-turn? true
-                           :text       "t1t"}]
-        (is (= expected-turn
-               (db/get-turn db (:id arthur))))
-        (is (= {:id     1
-                :status "active"
-                :turns  [expected-turn]}
-               (db/get-game db 1)))
-        (is (= [(:id arthur) txt/turn-done]
-               (<!! sender-ch)))))))
+        (epyc/receive-message epyc arthur "t1t" nil)
+        (let [expected-turn {:id         1
+                             :player-id  (:id arthur)
+                             :status     "done"
+                             :game-id    1
+                             :text-turn? true
+                             :text       "t1t"}]
+          (is (= expected-turn
+                 (db/get-turn db (:id arthur))))
+          (is (= {:id     1
+                  :status "active"
+                  :turns  [expected-turn]}
+                 (db/get-game db 1)))
+          (is (= [(:id arthur) txt/turn-done]
+                 (<!! sender-ch)))))))
 
 

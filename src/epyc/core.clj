@@ -10,10 +10,10 @@
 (def telegram-token (env :telegram-token))
 (def db-spec (env :db-spec))
 
-(defn message-fn [epyc {:keys [from text photo] :as msg}]
+(defn message-fn [epyc {:keys [message_id from text photo] :as msg}]
   (let [player (select-keys from [:id :first_name :last_name])]
     (log/info (:id player) text)
-    (epyc/receive-message epyc player text photo)))
+    (epyc/receive-message epyc player message_id text photo)))
 
 (defn -main []
   (log/info "Starting")

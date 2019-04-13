@@ -46,7 +46,7 @@
     sender :sender} player-id text photo]
   (prn "todo: play-turn")
   #_(let [player (db/get-player db player-id)
-          turn (db/get-turn db player-id)]
+          turn   (db/get-turn db player-id)]
       (if turn
         (db/play-turn (:id turn) photo text)
         (send/confused sender player))))
@@ -54,11 +54,11 @@
 
 (defn receive-message
   "Respond to a message received from a player"
-  ([ctx player text]
-   (receive-message ctx player text nil))
+  ([ctx player message-id text]
+   (receive-message ctx player message-id text nil))
   ([{:as    ctx
      sender :sender
-     db     :db} player text photo]
+     db     :db} player message-id text photo]
    (case text
      "/start"
      (do (db/new-player db player)
@@ -71,5 +71,6 @@
      (join-game ctx (:id player))
 
      ;; default
-     (prn "todo: play-turn")
-     #_(play-turn ctx (:id player) text photo))))
+     ;; TODO: forward a real turn instead of forwarding back to player
+     (send/forward-message sender (:id player) (:id player) message-id)
+     #_ (play-turn ctx (:id player) text photo))))
