@@ -18,8 +18,7 @@
     (t/send-photo token id (io/file (io/resource filename))))
 
   (forward-message [{token :token} to-id from-id message-id]
-    ;; There is a PR on morse to enable this
-    #_(t/forward-message token to-id from-id message-id)))
+    (t/forward-message token to-id from-id message-id)))
 
 ;; (defn text-turn [sender id turn]
 ;;   (do (send-text sender id txt/request-text)

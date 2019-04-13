@@ -54,11 +54,11 @@
 
 (defn receive-message
   "Respond to a message received from a player"
-  ([ctx player message-id text]
-   (receive-message ctx player message-id text nil))
+  ([ctx message-id player text]
+   (receive-message ctx message-id player text nil))
   ([{:as    ctx
      sender :sender
-     db     :db} player message-id text photo]
+     db     :db} message-id player text photo]
    (case text
      "/start"
      (do (db/new-player db player)

@@ -13,7 +13,7 @@
 (defn message-fn [epyc {:keys [message_id from text photo] :as msg}]
   (let [player (select-keys from [:id :first_name :last_name])]
     (log/info (:id player) text)
-    (epyc/receive-message epyc player message_id text photo)))
+    (epyc/receive-message epyc message_id player text photo)))
 
 (defn -main []
   (log/info "Starting")

@@ -15,8 +15,8 @@
     (async/>!! ch [player-id text]))
   (send-photo [{ch :ch} player-id photo]
     (async/>!! ch [player-id photo]))
-  (forward-message [{ch :ch} player-id message-id]
-    (async/>!! ch [player-id message-id])))
+  (forward-message [{ch :ch} player-id from-id message-id]
+    (async/>!! ch [player-id from-id message-id])))
 
 (defn <!!t
   "Same as <!!, but waits 0.5s"
@@ -33,6 +33,13 @@
              :first_name "Zaphod"
              :last_name  "Beeblebrox"})
 
+(def message-id-counter (atom 0))
+(defn ^:private i []
+  @message-id-counter)
+(defn ^:private i+ []
+  (swap! message-id-counter inc)
+  (i))
+
 (defn ^:private create-epyc
   "Create an EPYC with a test db and a mocked sender. Returns itself, a db, and the channel for the sender."
   []
@@ -47,17 +54,17 @@
   (log/info "-----------------")
   (let [[epyc db sender-ch] (create-epyc)]
     (testing "/start creates player"
-      (epyc/receive-message epyc arthur "/start" nil)
+      (epyc/receive-message epyc (i) arthur "/start" nil)
       (is (= arthur
              (db/get-player db (:id arthur))))
       (is (= [(:id arthur) txt/start]
              (<!!t sender-ch))))
     (testing "/help"
-      (epyc/receive-message epyc arthur "/help" nil)
+      (epyc/receive-message epyc (i) arthur "/help" nil)
       (is (= [(:id arthur) txt/help]
              (<!!t sender-ch))))
     (testing "/play"
-      (epyc/receive-message epyc arthur "/play" nil)
+      (epyc/receive-message epyc (i) arthur "/play" nil)
       (let [expected-turn {:id         1
                            :player-id  (:id arthur)
                            :status     "unplayed"
@@ -75,7 +82,7 @@
                (<!!t sender-ch))))
 
       (testing "/play when epyc is waiting for turn"
-        (epyc/receive-message epyc arthur "/play" nil)
+        (epyc/receive-message epyc (i) arthur "/play" nil)
         (let [expected-turn {:id         1
                              :player-id  (:id arthur)
                              :status     "unplayed"
@@ -94,10 +101,10 @@
           (is (= [(:id arthur) txt/first-turn]
                  (<!!t sender-ch)))))
       (testing "Second player /play with no open games"
-        (epyc/receive-message epyc ford "/start" nil)
+        (epyc/receive-message epyc (i) ford "/start" nil)
         (is (= [(:id ford) txt/start]
                (<!!t sender-ch)))
-        (epyc/receive-message epyc ford "/play" nil)
+        (epyc/receive-message epyc (i) ford "/play" nil)
         (let [expected-turn {:id         2
                              :player-id  (:id ford)
                              :status     "unplayed"
