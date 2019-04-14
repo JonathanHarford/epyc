@@ -63,7 +63,7 @@
 
 (defn get-player
   [dbspec player-id]
-  (->> [(str "SELECT p_id as id, first_name, last_name "
+  (->> [(sql "SELECT p_id as id, first_name, last_name"
              "FROM player WHERE p_id = ?") player-id]
        (jdbc/query dbspec)
        first))
@@ -80,10 +80,10 @@
 (defn get-game
   [dbspec game-id]
   (let [turns (jdbc/query dbspec
-                          [(str "SELECT g.g_id, g.status g_status, t.t_id, "
-                                "t.p_id, t.m_id, t.status t_status, t.text_turn "
-                                "FROM turn t left join game g "
-                                "on t.g_id = g.g_id "
+                          [(sql "SELECT g.g_id, g.status g_status, t.t_id,"
+                                "t.p_id, t.m_id, t.status t_status, t.text_turn"
+                                "FROM turn t left join game g"
+                                "on t.g_id = g.g_id"
                                 "WHERE g.g_id = ?")
                            game-id])]
     (when (seq turns)
