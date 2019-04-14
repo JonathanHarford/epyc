@@ -4,41 +4,57 @@
             [epyc.sender :as send]
             [epyc.text :as txt]))
 
-(defn ^:private first-turn? [turn]
-  (-> turn :preceding not))
-
 (defn ^:private text-turn? [turn]
   (:text-turn? turn))
 
 (defn send-turn
   "Send an unplayed turn to the player"
-  [{sender :sender} turn]
-  (let [player-id (-> turn :player-id)]
+  [{sender :sender
+    db     :db} turn]
+  (let [player-id (-> turn :player-id)
+        prev-turn (db/get-last-done-turn-in-game db (:game-id turn))]
     (cond
-      (first-turn? turn)
+      (nil? prev-turn)
       (send/send-text sender player-id txt/first-turn)
 
-      ;; (text-turn? turn)
-      ;; (send/text-turn player-id turn)
+      (text-turn? turn)
+      (do
+        (send/send-text sender player-id txt/request-text)
+        (send/forward-message sender
+                              player-id
+                              (:player-id prev-turn)
+                              (:message-id prev-turn)))
 
-      ;; :else
-      ;; (send/photo-turn player-id turn)
-      )))
+      :else-photo-turn
+      (do
+        (send/send-text sender player-id txt/request-photo)
+        (send/forward-message sender
+                              player-id
+                              (:player-id prev-turn)
+                              (:message-id prev-turn))))))
+
+(defn resend-turn [{sender :sender
+                    :as    ctx} turn]
+  (log/info (:player-id turn) "Already playing" (:game-id turn) (:id turn))
+  (send/send-text sender (:player-id turn) txt/already-playing)
+  (send-turn ctx turn))
 
 (defn join-game
   "Attach a player to a game, creating a new game if necessary"
   [{db     :db
-    sender :sender
     :as    ctx} player-id]
-  (log/info "join-game")
-  (if-let [turn (db/get-turn db player-id)]
-    (do
-      (send/send-text sender player-id txt/already-playing)
-      (send-turn ctx turn))
-    (let [game-id (or #_(first (db/get-unplayed-games db player-id))
-                      (db/new-game db player-id))
-          turn    (db/new-turn db game-id player-id)]
-      (send-turn ctx turn))))
+  (let [existing-turn (db/get-turn db player-id)
+        unplayed-game (db/get-unplayed-game db player-id)]
+    (cond
+      existing-turn
+      (resend-turn ctx existing-turn)
+
+      unplayed-game
+      (send-turn ctx (db/new-turn db (:id unplayed-game) player-id))
+
+      :else-create-new-game
+      (let [new-game-id (db/new-game db player-id)]
+        (send-turn ctx (db/new-turn db new-game-id player-id))))))
 
 (defn play-turn
   "Convert a turn from `unplayed` to `played`"
@@ -59,6 +75,7 @@
   ([{:as    ctx
      sender :sender
      db     :db} message-id player text photo]
+   (log/info (str "Message from " (:first_name player) ":") text)
    (case text
      "/start"
      (do (db/new-player db player)
@@ -72,5 +89,4 @@
 
      ;; default
      ;; TODO: forward a real turn instead of forwarding back to player
-     (send/forward-message sender (:id player) (:id player) message-id)
-     #_ (play-turn ctx (:id player) text photo))))
+     (play-turn ctx (:id player) text photo))))

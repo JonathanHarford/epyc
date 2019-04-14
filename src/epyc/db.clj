@@ -14,13 +14,22 @@
           :text-turn? text_turn
           :text       text}))
 
+(defn ^:private sql [& strs]
+  (str/join " " strs))
+
 (defn ^:private get-last-turn [{turns :turns}]
   (last turns))
+
+(defn log [msg-str & args]
+  (let [[player-id game-id turn-id] args]
+    (log/info
+     (str "P" player-id (when game-id (str " [" game-id (when turn-id (str "/" turn-id)) "]")) " " msg-str))))
+
 
 (defn migrate-schema [dbspec schema]
   (if (-> (jdbc/query
            dbspec
-           [(str "SELECT COUNT(*) "
+           [(sql "SELECT COUNT(*) "
                  "FROM information_schema.tables "
                  "WHERE table_name IN"
                  "('turn', 'player')")])
@@ -44,7 +53,7 @@
 
 (defn new-player
   [dbspec {:keys [id first_name last_name]}]
-  (log/info "Creating" id first_name last_name)
+  (log "Creating" id)
   (jdbc/insert! dbspec
                 :player
                 {:p_id       id
@@ -54,7 +63,6 @@
 
 (defn get-player
   [dbspec player-id]
-  (log/info "Getting player" player-id)
   (->> [(str "SELECT p_id as id, first_name, last_name "
              "FROM player WHERE p_id = ?") player-id]
        (jdbc/query dbspec)
@@ -62,15 +70,15 @@
 
 (defn new-game
   [dbspec player-id]
-  (log/info "Creating game for" player-id)
-  (->> {:status "active"}
-       (jdbc/insert! dbspec :game)
-       first
-       :g_id))
+  (let [game-id (->> {:status "available"}
+                     (jdbc/insert! dbspec :game)
+                     first
+                     :g_id)]
+    (log "Created game" player-id game-id)
+    game-id))
 
 (defn get-game
   [dbspec game-id]
-  (log/info "Getting game" game-id)
   (let [turns (jdbc/query dbspec
                           [(str "SELECT g.g_id, g.status g_status, t.t_id, "
                                 "t.p_id, t.m_id, t.status t_status, t.text_turn "
@@ -78,42 +86,95 @@
                                 "on t.g_id = g.g_id "
                                 "WHERE g.g_id = ?")
                            game-id])]
-    {:id     game-id
-     :status (-> turns first :g_status)
-     :turns  (mapv db-turn->turn turns)}))
+    (when (seq turns)
+        {:id     game-id
+         :status (-> turns first :g_status)
+         :turns  (mapv db-turn->turn turns)})))
 
+(defn get-unplayed-game
+  "Returns an available game that is untouched by player"
+  [dbspec player-id]
+  (let [game-id (some->> (jdbc/query dbspec
+                             [(sql "SELECT g_id FROM game"
+                                   "WHERE status = 'available'"
+                                   "AND g_id NOT IN"
+                                   "(SELECT g_id FROM turn WHERE p_id = ?)"
+                                   "LIMIT 1")
+                              player-id])
+                 first
+                 :g_id)]
+    (if game-id
+      (do
+        (log "Found AVAILABLE game" player-id game-id)
+        (get-game dbspec game-id))
+      (log "No AVAILABLE games" player-id))))
+
+(defn set-game-waiting
+  [dbspec game-id]
+  (log "Setting game WAITING" nil game-id)
+  (jdbc/update! dbspec :game {:status "waiting"}
+                ["g_id = ? AND status = 'available'"
+                 game-id]))
+
+(defn set-game-available
+  [dbspec game-id]
+  (log "Setting game AVAILABLE" nil game-id)
+  (jdbc/update! dbspec :game {:status "available"}
+                ["g_id = ? AND status = 'waiting'"
+                 game-id]))
 (defn new-turn
-  "Creates new turn in new game for player"
+  "Creates new turn for player"
   [dbspec game-id player-id]
-  (log/info "Creating turn in game" game-id "for" player-id)
-  (let [game (get-game dbspec game-id)]
-    (some->> {:p_id      player-id
-              :g_id      game-id
-              :text_turn (-> game
-                             get-last-turn
-                             :text-turn?
-                             not)}
-             (jdbc/insert! dbspec :turn)
-             first
-             db-turn->turn)))
+  (let [game (get-game dbspec game-id)
+        turn (some->> {:p_id      player-id
+                       :g_id      game-id
+                       :text_turn (-> game
+                                      get-last-turn
+                                      :text-turn?
+                                      not)}
+                      (jdbc/insert! dbspec :turn)
+                      first
+                      db-turn->turn)]
+    (log "Created turn" player-id game-id (:id turn))
+    (set-game-waiting dbspec game-id)
+    turn))
 
 (defn get-turn
   [dbspec player-id]
-  (log/info "Getting turn for" player-id)
-  (some->> [(str "SELECT t_id, p_id, g_id, m_id,"
-                 "status t_status, text_turn, text "
-                 "FROM turn WHERE p_id = ? "
-                 "AND status = 'unplayed'")
-            player-id]
-           (jdbc/query dbspec)
-           first
-           db-turn->turn))
+  (let [turn (some->> [(sql "SELECT t_id, p_id, g_id, m_id,"
+                            "status t_status, text_turn, text"
+                            "FROM turn WHERE p_id = ?"
+                            "AND status = 'unplayed'")
+                       player-id]
+                      (jdbc/query dbspec)
+                      first
+                      db-turn->turn)]
+    (if turn
+      (do (log "Got UNPLAYED turn" player-id (:game-id turn) (:id turn))
+          turn)
+      (log "No UNPLAYED turn" player-id))))
+
+(defn get-last-done-turn-in-game
+  [dbspec game-id]
+  (let [turn (some->> [(sql "SELECT t_id, p_id, g_id, m_id,"
+                            "status t_status, text_turn, text"
+                            "FROM turn WHERE g_id = ?"
+                            "AND status = 'done'"
+                            "ORDER by m_at DESC")
+                       game-id]
+                      (jdbc/query dbspec)
+                      first
+                      db-turn->turn)]
+    (if turn
+      (do (log "Got last DONE turn from game" (:player-id turn) (:id turn) game-id)
+          turn)
+      (log "No DONE turns in game" nil game-id nil))))
 
 #_(defn play-turn
     [dbspec turn-id photo text]
     (log/info "Playing turn" turn-id (if photo photo text))
     (jdbc/update! dbspec :turn {:text text}  ; TODO: photo
-                  [(str "WHERE t_id = ? AND status = 'unplayed'")
+                  [(sql "t_id = ? AND status = 'unplayed'")
                    turn-id]))
 
 

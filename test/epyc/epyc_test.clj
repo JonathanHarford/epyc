@@ -54,19 +54,22 @@
       :sender sender
       :opts   {:turns-per-game 3}} dbspec (:ch sender)]))
 
+(defn assert-msgs [ch who & msgs]
+  (doseq [msg msgs]
+    (is (= [(:id who) msg]
+           (<!!t ch)))))
+
 (deftest receiving-commands
   (log/info "-----------------")
-  (let [[epyc db sender-ch] (create-epyc)]
+  (let [[epyc db ch] (create-epyc)]
     (testing "/start creates player"
       (epyc/receive-message epyc (m+) arthur "/start" nil)
       (is (= arthur
              (db/get-player db (:id arthur))))
-      (is (= [(:id arthur) txt/start]
-             (<!!t sender-ch))))
+      (assert-msgs ch arthur txt/start))
     (testing "/help"
       (epyc/receive-message epyc (m+) arthur "/help" nil)
-      (is (= [(:id arthur) txt/help]
-             (<!!t sender-ch))))
+      (assert-msgs ch arthur txt/help))
     (testing "Arthur /play"
       (epyc/receive-message epyc (m+) arthur "/play" nil)
       (let [expected-turn {:id         1
@@ -79,14 +82,14 @@
             game          (db/get-game db 1)]
         (is (= expected-turn
                (db/get-turn db (:id arthur))))
-        (is (= "active"
+        (is (= "waiting"
                (:status game)))
         (is (= 1
                (-> game :turns count)))
         (is (= expected-turn
                (-> game :turns last)))
-        (is (= [(:id arthur) txt/first-turn]
-               (<!!t sender-ch)))))
+        (assert-msgs ch arthur
+                     txt/first-turn)))
 
     ;; 1 a
     (testing "Arthur /play when epyc is waiting for turn"
@@ -101,21 +104,21 @@
             game          (db/get-game db 1)]
         (is (= expected-turn
                (db/get-turn db (:id arthur))))
-        (is (= "active"
+        (is (= "waiting"
                (:status game)))
         (is (= 1
                (-> game :turns count)))
         (is (= expected-turn
-               (-> game :turns last))) 
+               (-> game :turns last)))
         (is (= [(:id arthur) txt/already-playing]
-               (<!!t sender-ch)))
+               (<!!t ch)))
         (is (= [(:id arthur) txt/first-turn]
-               (<!!t sender-ch)))))
+               (<!!t ch)))))
     ;; 1 a
     (testing "Ford /play with no open games creates game"
       (epyc/receive-message epyc (m+) ford "/start" nil)
       (is (= [(:id ford) txt/start]
-             (<!!t sender-ch)))
+             (<!!t ch)))
       (epyc/receive-message epyc (m+) ford "/play" nil)
       (let [expected-turn {:id         2
                            :player-id  (:id ford)
@@ -127,18 +130,17 @@
             game          (db/get-game db 2)]
         (is (= expected-turn
                (db/get-turn db (:id ford))))
-        (is (= "active"
+        (is (= "waiting"
                (:status game)))
         (is (= 1
                (-> game :turns count)))
         (is (= expected-turn
                (-> game :turns last)))
         (is (= [(:id ford) txt/first-turn]
-               (<!!t sender-ch)))))
+               (<!!t ch)))))
     ;; 1 a
     ;; 2 f
-
-    #_(
+    #_[
        (testing "Arthur completing first (text) turn, game 1"
          (epyc/receive-message epyc (m+) arthur "g1t1" nil)
          (let [expected-turn {:id         1
@@ -151,14 +153,14 @@
                game          (db/get-game db 1)]
            (is (= expected-turn
                   (db/get-turn db (:id arthur))))
-           (is (= "active"
+           (is (= "waiting"
                   (:status game)))
            (is (= 1
                   (-> game :turns count)))
            (is (= expected-turn
                   (-> game :turns last)))
            (is (= [(:id arthur) txt/turn-done]
-                  (<!!t sender-ch)))))
+                  (<!!t ch)))))
        ;; 1 A
        ;; 2 f
        (testing "Ford completing first (text) turn, game 2"
@@ -173,14 +175,14 @@
                game          (db/get-game db 2)]
            (is (= expected-turn
                   (db/get-turn db (:id ford))))
-           (is (= "active"
+           (is (= "waiting"
                   (:status game)))
            (is (= 1
                   (-> game :turns count)))
            (is (= expected-turn
                   (-> game :turns last)))
            (is (= [(:id arthur) txt/turn-done]
-                  (<!!t sender-ch)))))
+                  (<!!t ch)))))
        ;; 1 A
        ;; 2 F
        (testing "Ford /play"
@@ -195,7 +197,7 @@
                  game          (db/get-game db 1)]
              (is (= expected-turn
                     (db/get-turn db (:id ford))))
-             (is (= "active"
+             (is (= "waiting"
                     (:status game)))
              (is (= 2
                     (-> game :turns count)))
@@ -203,9 +205,9 @@
                     (-> game :turns last)))))
          (testing "forwards turn 1 on game 1 and requests photo"
            (is (= [(:id ford) (:id arthur) 1]
-                  (<!!t sender-ch)))
+                  (<!!t ch)))
            (is (= [(:id ford) txt/request-photo]
-                  (<!!t sender-ch))))
+                  (<!!t ch))))
          )
        ;; 1 A f
        ;; 2 F
@@ -221,7 +223,7 @@
                  game          (db/get-game db 2)]
              (is (= expected-turn
                     (db/get-turn db (:id zaphod))))
-             (is (= "active"
+             (is (= "waiting"
                     (:status game)))
              (is (= 2
                     (-> game :turns count)))
@@ -230,9 +232,9 @@
              ))
          (testing "forwards turn 1 on game 2 and requests photo"
            (is (= [(:id zaphod) (:id ford) 1]
-                  (<!!t sender-ch)))
+                  (<!!t ch)))
            (is (= [(:id zaphod) txt/request-photo]
-                  (<!!t sender-ch)))))
+                  (<!!t ch)))))
        ;; 1 A f
        ;; 2 F z
        (testing "Ford tries completing second (pic) turn, game 1 with text"
@@ -247,16 +249,16 @@
                game          (db/get-game db 2)]
            (is (= expected-turn
                   (db/get-turn db (:id ford))))
-           (is (= "active"
+           (is (= "waiting"
                   (:status game)))
            (is (= 2
                   (-> game :turns count)))
            (is (= expected-turn
                   (-> game :turns last)))
            (is (= [(:id ford) txt/confused]
-                  (<!!t sender-ch)))
+                  (<!!t ch)))
            (is (= [(:id ford) txt/request-photo]
-                  (<!!t sender-ch))))
+                  (<!!t ch))))
          ;; 1 A f
          ;; 2 F z
          (testing "Ford completes second turn game 2 with pic"
@@ -269,14 +271,14 @@
                                 :text-turn? true
                                 :photo      "g2t2"}
                  game          (db/get-game db 2)]
-             (is (= "active"
+             (is (= "waiting"
                     (:status game)))
              (is (= 2
                     (-> game :turns count)))
              (is (= expected-turn
                     (-> game :turns last)))
              (is (= [(:id ford) txt/turn-done]
-                    (<!!t sender-ch)))))
+                    (<!!t ch)))))
          ;; 1 A F
          ;; 2 F z
          (testing "Trillian /play"
@@ -289,7 +291,7 @@
                                   :message-id nil
                                   :text-turn? true}
                    game          (db/get-game db 1)]
-               (is (= "active"
+               (is (= "waiting"
                       (:status game)))
                (is (= 3
                       (-> game :turns count)))
@@ -298,9 +300,9 @@
                ))
            (testing "forwards turn 2 on game 1 and requests text"
              (is (= [(:id trillian) (:id ford) 3]
-                    (<!!t sender-ch)))
+                    (<!!t ch)))
              (is (= [(:id trillian) txt/request-text]
-                    (<!!t sender-ch)))))
+                    (<!!t ch)))))
          ;; 1 A F t
          ;; 2 F z
          (testing "Trillian completes game 2 turn 3 with pic"
@@ -322,7 +324,7 @@
              (is (= expected-turn
                     (-> game :turns last)))
              (is (= [(:id trillian) txt/turn-done]
-                    (<!!t sender-ch)))))
-         ))))
+                    (<!!t ch)))))
+         )]))
 
 

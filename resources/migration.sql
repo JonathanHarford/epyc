@@ -8,7 +8,7 @@ CREATE TABLE player (
 
 CREATE TABLE game (
   g_id SERIAL PRIMARY KEY,
-  status VARCHAR (10) NOT NULL DEFAULT 'active',
+  status VARCHAR (10) NOT NULL DEFAULT 'available', -- 'waiting', 'done', 'deleted'
   c_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
   m_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -18,7 +18,7 @@ CREATE TABLE turn (
   t_id SERIAL PRIMARY KEY,
   p_id INTEGER NOT NULL,
   g_id INTEGER NOT NULL,
-  status VARCHAR (10) NOT NULL DEFAULT 'unplayed',
+  status VARCHAR (10) NOT NULL DEFAULT 'unplayed', -- 'done', 'deleted'
   text_turn BOOLEAN NOT NULL,
   m_id INTEGER,  -- ID of telegram message
   text VARCHAR (255),
