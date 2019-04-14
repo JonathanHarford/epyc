@@ -12,7 +12,7 @@ Use message ID for forwarding
 
 Post game to tumblr/group chat
 
-## After MVC
+## After MVP
 
 Image processing
 - Crop

@@ -42,15 +42,15 @@
 
 (defn play-turn
   "Convert a turn from `unplayed` to `played`"
-  [{db     :db
-    sender :sender} player-id text photo]
+  [{db                               :db
+    sender                           :sender
+    {turns-per-game :turns-per-game} :opts} player-id text photo]
   (prn "todo: play-turn")
   #_(let [player (db/get-player db player-id)
           turn   (db/get-turn db player-id)]
       (if turn
         (db/play-turn (:id turn) photo text)
         (send/confused sender player))))
-
 
 (defn receive-message
   "Respond to a message received from a player"
