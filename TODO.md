@@ -8,6 +8,12 @@ Store message ID in turns
 
 Use message ID for forwarding
 
+## Try
+
+Component / Mount
+
+ORM (honeysql?)
+
 ## Final pieces
 
 Post game to tumblr/group chat
@@ -20,7 +26,7 @@ Image processing
 - Whiteboard scanner effect
 - PDF->PNG
 
-Image filtering
+Content filtering
 
 Player reputations
 
