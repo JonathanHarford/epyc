@@ -23,8 +23,8 @@
 (defn log [msg-str & args]
   (let [[player-id game-id turn-id] args]
     (log/info
-     (str "P" player-id (when game-id (str " [" game-id (when turn-id (str "/" turn-id)) "]")) " " msg-str))))
-
+     (str (when player-id (str "P" player-id))
+          (when game-id (str " [" game-id (when turn-id (str "/" turn-id)) "]")) " " msg-str))))
 
 (defn migrate-schema [dbspec schema]
   (if (-> (jdbc/query
@@ -94,7 +94,7 @@
 (defn get-unplayed-game
   "Returns an available game that is untouched by player"
   [dbspec player-id]
-  (let [game-id (some->> (jdbc/query dbspec
+  (let [game (some->> (jdbc/query dbspec
                              [(sql "SELECT g_id FROM game"
                                    "WHERE status = 'available'"
                                    "AND g_id NOT IN"
@@ -102,12 +102,12 @@
                                    "LIMIT 1")
                               player-id])
                  first
-                 :g_id)]
-    (if game-id
-      (do
-        (log "Found AVAILABLE game" player-id game-id)
-        (get-game dbspec game-id))
-      (log "No AVAILABLE games" player-id))))
+                 :g_id
+                 (get-game dbspec))]
+    (if game
+      (log "Found AVAILABLE game" player-id (:id game))
+      (log "No AVAILABLE games" player-id))
+    game))
 
 (defn set-game-waiting
   [dbspec game-id]
@@ -150,9 +150,9 @@
                       first
                       db-turn->turn)]
     (if turn
-      (do (log "Got UNPLAYED turn" player-id (:game-id turn) (:id turn))
-          turn)
-      (log "No UNPLAYED turn" player-id))))
+      (log "Got UNPLAYED turn" player-id (:game-id turn) (:id turn))
+      (log "No UNPLAYED turn" player-id))
+    turn))
 
 (defn get-last-done-turn-in-game
   [dbspec game-id]
@@ -166,9 +166,9 @@
                       first
                       db-turn->turn)]
     (if turn
-      (do (log "Got last DONE turn from game" (:player-id turn) (:id turn) game-id)
-          turn)
-      (log "No DONE turns in game" nil game-id nil))))
+      (log "Got last DONE turn from game" (:player-id turn) (:id turn) game-id)
+      (log "No DONE turns in game" nil game-id nil))
+    turn))
 
 #_(defn play-turn
     [dbspec turn-id photo text]
