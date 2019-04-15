@@ -6,8 +6,11 @@ FIXME: description
 
 `psql postgres -c"CREATE DATABASE epyc"`
 
-To run tests:
+To be able to run tests:
 `psql postgres -c"CREATE DATABASE epyctest"`
+
+To run tests:
+`lein test`
 
 ## Usage
 
