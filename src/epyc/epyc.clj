@@ -35,7 +35,10 @@
 
 (defn resend-turn [{sender :sender
                     :as    ctx} turn]
-  (log/info (:player-id turn) "Already playing" (:game-id turn) (:id turn))
+  (log/info (format "P%s [%s/%s] already playing"
+            (:player-id turn)
+            (:game-id turn)
+            (:id turn)))
   (send/send-text sender (:player-id turn) txt/already-playing)
   (send-turn ctx turn))
 
