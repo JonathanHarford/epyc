@@ -1,5 +1,9 @@
 # TO DO
 
+## RIGHT NOW
+
+Get tests to pass, naturally.
+
 ## Plumbing
 
 Store message ID in turns

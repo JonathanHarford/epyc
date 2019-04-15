@@ -2,7 +2,6 @@
   (:require
    [clojure.test :refer [deftest is testing]]
    [clojure.core.async :as async]
-   [clojure.tools.logging :as log]
    epyc.sender
    [epyc.db :as db]
    [epyc.epyc :as epyc]
@@ -65,7 +64,7 @@
            [actual-to actual-from]))))
 
 (deftest receiving-commands
-  (log/info "-----------------")
+  (println "-----------------")
   (let [[epyc db ch] (create-epyc)]
     (testing "/start creates player"
       (epyc/receive-message epyc (m+) arthur "/start" nil)

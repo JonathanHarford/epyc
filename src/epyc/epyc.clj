@@ -1,5 +1,5 @@
 (ns epyc.epyc
-  (:require [clojure.tools.logging :as log]
+  (:require [taoensso.timbre :as log]
             [epyc.db :as db]
             [epyc.sender :as send]
             [epyc.text :as txt]))
@@ -75,7 +75,7 @@
   ([{:as    ctx
      sender :sender
      db     :db} message-id player text photo]
-   (log/info (str "Message from " (:first_name player) ":") text)
+   (log/info (str (:first_name player) " says:") text)
    (case text
      "/start"
      (do (db/new-player db player)

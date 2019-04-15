@@ -1,8 +1,7 @@
 (ns epyc.db
   (:require [clojure.string :as str]
-            [clojure.tools.logging :as log]
-            [clojure.java.jdbc :as jdbc]
-            [epyc.util :refer [spy]]))
+            [taoensso.timbre :as log]
+            [clojure.java.jdbc :as jdbc]))
 
 (defn ^:private db-turn->turn
   [{:keys [t_id p_id g_id m_id t_status text_turn text]}]
