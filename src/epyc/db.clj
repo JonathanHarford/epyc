@@ -4,14 +4,14 @@
             [clojure.java.jdbc :as jdbc]))
 
 (defn ^:private db-turn->turn
-  [{:keys [t_id p_id g_id m_id t_status text_turn text]}]
+  [{:keys [t_id p_id g_id m_id t_status text_turn content]}]
   (merge {:id         t_id
           :player-id  p_id
           :game-id    g_id
           :message-id m_id
           :status     t_status
           :text-turn? text_turn
-          :text       text}))
+          :content    content}))
 
 (defn ^:private sql [& strs]
   (str/join " " strs))
@@ -82,7 +82,7 @@
                           [(sql "SELECT g.g_id, g.status g_status,"
                                 "t.t_id, t.p_id, t.m_id,"
                                 "t.status t_status,"
-                                "t.text_turn, t.text"
+                                "t.text_turn, t.content"
                                 "FROM turn t left join game g"
                                 "on t.g_id = g.g_id"
                                 "WHERE g.g_id = ?")
@@ -143,7 +143,7 @@
 (defn get-turn
   [dbspec player-id]
   (let [turn (some->> [(sql "SELECT t_id, p_id, g_id, m_id,"
-                            "status t_status, text_turn, text"
+                            "status t_status, text_turn, content"
                             "FROM turn WHERE p_id = ?")
                        player-id]
                       (jdbc/query dbspec)
@@ -157,7 +157,7 @@
 (defn get-last-done-turn-in-game
   [dbspec game-id]
   (let [turn (some->> [(sql "SELECT t_id, p_id, g_id, m_id,"
-                            "status t_status, text_turn, text"
+                            "status t_status, text_turn, content"
                             "FROM turn WHERE g_id = ?"
                             "AND status = 'done'"
                             "ORDER by m_at DESC")
@@ -171,11 +171,11 @@
     turn))
 
 (defn play-turn
-  [dbspec turn-id message-id text]
+  [dbspec turn-id message-id content]
   (log/info "Playing turn")
-  (jdbc/update! dbspec :turn {:text     text
-                              :status   "done"
-                              :m_id     message-id}
+  (jdbc/update! dbspec :turn {:content content
+                              :status  "done"
+                              :m_id    message-id}
                 [(sql "t_id = ? AND status = 'unplayed'")
                  turn-id]))
 

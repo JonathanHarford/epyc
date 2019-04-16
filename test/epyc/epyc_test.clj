@@ -10,8 +10,8 @@
 (defrecord MockSender
     [ch]
   epyc.sender/ISender
-  (send-text [{ch :ch} player-id text]
-    (async/>!! ch [player-id text]))
+  (send-text [{ch :ch} player-id content]
+    (async/>!! ch [player-id content]))
   (forward-message [{ch :ch} player-id from-id message-id]
     (async/>!! ch [player-id from-id message-id])))
 
@@ -80,7 +80,7 @@
                            :game-id    1
                            :message-id nil
                            :text-turn? true
-                           :text       nil}
+                           :content    nil}
             game          (db/get-game db 1)]
         (is (= expected-turn
                (db/get-turn db (:id arthur))))
@@ -101,7 +101,7 @@
                            :game-id    1
                            :message-id nil
                            :text-turn? true
-                           :text       nil}
+                           :content    nil}
             game          (db/get-game db 1)]
         (is (= expected-turn
                (db/get-turn db (:id arthur))))
@@ -124,7 +124,7 @@
                            :game-id    2
                            :message-id nil
                            :text-turn? true
-                           :text       nil}
+                           :content    nil}
             game          (db/get-game db 2)]
         (is (= expected-turn
                (db/get-turn db (:id ford))))
@@ -147,7 +147,7 @@
                            :game-id    1
                            :message-id (m#)
                            :text-turn? true
-                           :text       "g1t1"}
+                           :content    "g1t1"}
             game          (db/get-game db 1)]
         (is (= expected-turn
                (db/get-turn db (:id arthur))))
@@ -168,7 +168,7 @@
                                :game-id    2
                                :message-id (m#)
                                :text-turn? true
-                               :text       "g2t1"}
+                               :content    "g2t1"}
                 game          (db/get-game db 2)]
             (is (= expected-turn
                    (db/get-turn db (:id ford))))
@@ -236,7 +236,7 @@
                               :game-id    1
                               :message-id (m#)
                               :text-turn? true
-                              :text       "g2t1"}
+                              :content    "g2t1"}
                game          (db/get-game db 2)]
            (is (= expected-turn
                   (db/get-turn db (:id ford))))
@@ -297,7 +297,7 @@
                                 :game-id    1
                                 :message-id (m#)
                                 :text-turn? true
-                                :text       "g2t2"}
+                                :content    "g2t2"}
                  game          (db/get-game db 2)]
              (is (= expected-turn
                     (db/get-turn db (:id trillian))))
