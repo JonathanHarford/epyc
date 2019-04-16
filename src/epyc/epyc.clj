@@ -7,7 +7,7 @@
 (defn ^:private text-turn? [turn]
   (:text-turn? turn))
 
-(defn send-turn
+(defn ^:private send-turn
   "Send an unplayed turn to the player"
   [{sender :sender
     db     :db} turn]
@@ -33,19 +33,19 @@
                               (:player-id prev-turn)
                               (:message-id prev-turn))))))
 
-(defn resend-turn [{sender :sender
-                    :as    ctx} turn]
+(defn ^:private resend-turn [{sender :sender
+                              :as    ctx} turn]
   (log/info (format "P%s [%s/%s] already playing"
-            (:player-id turn)
-            (:game-id turn)
-            (:id turn)))
+                    (:player-id turn)
+                    (:game-id turn)
+                    (:id turn)))
   (send/send-text sender (:player-id turn) txt/already-playing)
   (send-turn ctx turn))
 
-(defn join-game
+(defn ^:private join-game
   "Attach a player to a game, creating a new game if necessary"
-  [{db     :db
-    :as    ctx} player-id]
+  [{db  :db
+    :as ctx} player-id]
   (let [existing-turn (db/get-turn db player-id)
         unplayed-game (db/get-unplayed-game db player-id)]
     (cond
@@ -59,17 +59,14 @@
       (let [new-game-id (db/new-game db player-id)]
         (send-turn ctx (db/new-turn db new-game-id player-id))))))
 
-(defn play-turn
-  "Convert a turn from `unplayed` to `played`"
+(defn ^:private receive-turn
   [{db                               :db
     sender                           :sender
-    {turns-per-game :turns-per-game} :opts} player-id text photo]
-  (prn "todo: play-turn")
-  #_(let [player (db/get-player db player-id)
-          turn   (db/get-turn db player-id)]
-      (if turn
-        (db/play-turn (:id turn) photo text)
-        (send/confused sender player))))
+    {turns-per-game :turns-per-game} :opts} player-id message-id text photo]
+  (if-let [turn (db/get-turn db player-id)]
+    (do (db/play-turn db (:id turn) message-id photo text)
+        (send/send-text sender player-id txt/turn-done))
+    (send/send-text sender player-id txt/confused)))
 
 (defn receive-message
   "Respond to a message received from a player"
@@ -78,8 +75,9 @@
   ([{:as    ctx
      sender :sender
      db     :db} message-id player text photo]
-   (log/info (str (:first_name player) " says:") text)
+   (log/info (str (:id player) "-" (:first_name player) " says:") text)
    (case text
+
      "/start"
      (do (db/new-player db player)
          (send/send-text sender (:id player) txt/start))
@@ -91,5 +89,4 @@
      (join-game ctx (:id player))
 
      ;; default
-     ;; TODO: forward a real turn instead of forwarding back to player
-     (play-turn ctx (:id player) text photo))))
+     (receive-turn ctx (:id player) message-id text photo))))

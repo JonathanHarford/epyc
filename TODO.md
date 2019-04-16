@@ -4,15 +4,11 @@
 
 Get tests to pass, naturally.
 
-## Plumbing
-
-Store message ID in turns
-
-* Should we ignore turn status = unplayed in favor of message-id = nil? Probably not.
-
-Use message ID for forwarding
-
 ## Try
+
+Get cider repl working again
+
+- namespace 'epyc.epyc' not found
 
 Component / Mount
 

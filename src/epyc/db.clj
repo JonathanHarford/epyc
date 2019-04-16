@@ -80,29 +80,30 @@
   [dbspec game-id]
   (let [turns (jdbc/query dbspec
                           [(sql "SELECT g.g_id, g.status g_status, t.t_id,"
-                                "t.p_id, t.m_id, t.status t_status, t.text_turn"
+                                "t.p_id, t.m_id, t.status t_status,"
+                                "t.text_turn, t.text, t.filename"
                                 "FROM turn t left join game g"
                                 "on t.g_id = g.g_id"
                                 "WHERE g.g_id = ?")
                            game-id])]
     (when (seq turns)
-        {:id     game-id
-         :status (-> turns first :g_status)
-         :turns  (mapv db-turn->turn turns)})))
+      {:id     game-id
+       :status (-> turns first :g_status)
+       :turns  (mapv db-turn->turn turns)})))
 
 (defn get-unplayed-game
   "Returns an available game that is untouched by player"
   [dbspec player-id]
   (let [game (some->> (jdbc/query dbspec
-                             [(sql "SELECT g_id FROM game"
-                                   "WHERE status = 'available'"
-                                   "AND g_id NOT IN"
-                                   "(SELECT g_id FROM turn WHERE p_id = ?)"
-                                   "LIMIT 1")
-                              player-id])
-                 first
-                 :g_id
-                 (get-game dbspec))]
+                                  [(sql "SELECT g_id FROM game"
+                                        "WHERE status = 'available'"
+                                        "AND g_id NOT IN"
+                                        "(SELECT g_id FROM turn WHERE p_id = ?)"
+                                        "LIMIT 1")
+                                   player-id])
+                      first
+                      :g_id
+                      (get-game dbspec))]
     (if game
       (log "Found AVAILABLE game" player-id (:id game))
       (log "No AVAILABLE games" player-id))
@@ -142,8 +143,7 @@
   [dbspec player-id]
   (let [turn (some->> [(sql "SELECT t_id, p_id, g_id, m_id,"
                             "status t_status, text_turn, text"
-                            "FROM turn WHERE p_id = ?"
-                            "AND status = 'unplayed'")
+                            "FROM turn WHERE p_id = ?")
                        player-id]
                       (jdbc/query dbspec)
                       first
@@ -169,12 +169,15 @@
       (log "No DONE turns in game" nil game-id nil))
     turn))
 
-#_(defn play-turn
-    [dbspec turn-id photo text]
-    (log/info "Playing turn" turn-id (if photo photo text))
-    (jdbc/update! dbspec :turn {:text text}  ; TODO: photo
-                  [(sql "t_id = ? AND status = 'unplayed'")
-                   turn-id]))
+(defn play-turn
+  [dbspec turn-id message-id photo text]
+  (log/info "Playing turn" (if photo photo text))
+  (jdbc/update! dbspec :turn {:text     text
+                              :filename photo
+                              :status   "done"
+                              :m_id     message-id}
+                [(sql "t_id = ? AND status = 'unplayed'")
+                 turn-id]))
 
 
 
