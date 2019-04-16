@@ -6,9 +6,9 @@ Get tests to pass, naturally.
 
 ## Try
 
-Get cider repl working again
+Get cider `,sx` working again (`(reset)` is ok?)
 
-- namespace 'epyc.epyc' not found
+- Could not locate clj_http/fake__init.class, clj_http/fake.clj or clj_http/fake.cljc on classpath. 
 
 Component / Mount
 
