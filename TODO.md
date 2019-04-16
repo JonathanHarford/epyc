@@ -2,6 +2,8 @@
 
 ## RIGHT NOW
 
+Add "nth" field to turn
+
 Get tests to pass, naturally.
 
 ## Try
@@ -12,7 +14,9 @@ Get cider `,sx` working again (`(reset)` is ok?)
 
 Component / Mount
 
-ORM (honeysql?)
+ORM (Toucan?)
+
+Test coverage
 
 ## Final pieces
 

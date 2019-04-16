@@ -149,8 +149,6 @@
                            :text-turn? true
                            :content    "g1t1"}
             game          (db/get-game db 1)]
-        (is (= expected-turn
-               (db/get-turn db (:id arthur))))
         (is (= "waiting"
                (:status game)))
         (is (= 1
@@ -160,27 +158,26 @@
         (assert-msgs ch arthur txt/turn-done)))
     ;; 1 A
     ;; 2 f
-    #_( (testing "Ford completing first (text) turn, game 2"
-          (receive-message epyc (m+) ford "g2t1")
-          (let [expected-turn {:id         2
-                               :player-id  (:id ford)
-                               :status     "done"
-                               :game-id    2
-                               :message-id (m#)
-                               :text-turn? true
-                               :content    "g2t1"}
-                game          (db/get-game db 2)]
-            (is (= expected-turn
-                   (db/get-turn db (:id ford))))
-            (is (= "waiting"
-                   (:status game)))
-            (is (= 1
-                   (-> game :turns count)))
-            (is (= expected-turn
-                   (-> game :turns last)))
-            (assert-msgs ch ford txt/turn-done)))
-       ;; 1 A
-       ;; 2 F
+    (testing "Ford completing first (text) turn, game 2"
+      (receive-message epyc (m+) ford "g2t1")
+      (let [expected-turn {:id         2
+                           :player-id  (:id ford)
+                           :status     "done"
+                           :game-id    2
+                           :message-id (m#)
+                           :text-turn? true
+                           :content    "g2t1"}
+            game          (db/get-game db 2)]
+        (is (= "waiting"
+               (:status game)))
+        (is (= 1
+               (-> game :turns count)))
+        (is (= expected-turn
+               (-> game :turns last)))
+        (assert-msgs ch ford txt/turn-done)))
+    ;; 1 A
+    ;; 2 F
+    #_(
        (testing "Ford /play"
          (receive-message epyc (m+) ford "/play")
          (testing "creates turn 2 on game 1"

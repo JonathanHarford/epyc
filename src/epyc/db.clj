@@ -144,7 +144,8 @@
   [dbspec player-id]
   (let [turn (some->> [(sql "SELECT t_id, p_id, g_id, m_id,"
                             "status t_status, text_turn, content"
-                            "FROM turn WHERE p_id = ?")
+                            "FROM turn WHERE p_id = ?"
+                            "AND status <> 'done'")
                        player-id]
                       (jdbc/query dbspec)
                       first
