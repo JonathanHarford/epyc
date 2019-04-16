@@ -79,9 +79,10 @@
 (defn get-game
   [dbspec game-id]
   (let [turns (jdbc/query dbspec
-                          [(sql "SELECT g.g_id, g.status g_status, t.t_id,"
-                                "t.p_id, t.m_id, t.status t_status,"
-                                "t.text_turn, t.text, t.filename"
+                          [(sql "SELECT g.g_id, g.status g_status,"
+                                "t.t_id, t.p_id, t.m_id,"
+                                "t.status t_status,"
+                                "t.text_turn, t.text"
                                 "FROM turn t left join game g"
                                 "on t.g_id = g.g_id"
                                 "WHERE g.g_id = ?")
@@ -170,10 +171,9 @@
     turn))
 
 (defn play-turn
-  [dbspec turn-id message-id photo text]
-  (log/info "Playing turn" (if photo photo text))
+  [dbspec turn-id message-id text]
+  (log/info "Playing turn")
   (jdbc/update! dbspec :turn {:text     text
-                              :filename photo
                               :status   "done"
                               :m_id     message-id}
                 [(sql "t_id = ? AND status = 'unplayed'")

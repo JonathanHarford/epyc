@@ -12,8 +12,6 @@
   epyc.sender/ISender
   (send-text [{ch :ch} player-id text]
     (async/>!! ch [player-id text]))
-  (send-photo [{ch :ch} player-id photo]
-    (async/>!! ch [player-id photo]))
   (forward-message [{ch :ch} player-id from-id message-id]
     (async/>!! ch [player-id from-id message-id])))
 
@@ -67,15 +65,15 @@
   (println "-----------------")
   (let [[epyc db ch] (create-epyc)]
     (testing "/start creates player"
-      (receive-message epyc (m+) arthur "/start" nil)
+      (receive-message epyc (m+) arthur "/start")
       (is (= arthur
              (db/get-player db (:id arthur))))
       (assert-msgs ch arthur txt/start))
     (testing "/help"
-      (receive-message epyc (m+) arthur "/help" nil)
+      (receive-message epyc (m+) arthur "/help")
       (assert-msgs ch arthur txt/help))
     (testing "Arthur /play"
-      (receive-message epyc (m+) arthur "/play" nil)
+      (receive-message epyc (m+) arthur "/play")
       (let [expected-turn {:id         1
                            :player-id  (:id arthur)
                            :status     "unplayed"
@@ -96,7 +94,7 @@
 
     ;; 1 a
     (testing "Arthur /play when epyc is waiting for turn"
-      (receive-message epyc (m+) arthur "/play" nil)
+      (receive-message epyc (m+) arthur "/play")
       (let [expected-turn {:id         1
                            :player-id  (:id arthur)
                            :status     "unplayed"
@@ -118,8 +116,8 @@
                      txt/first-turn)))
     ;; 1 a
     (testing "Ford /play with no open games creates game"
-      (receive-message epyc (m+) ford "/start" nil)
-      (receive-message epyc (m+) ford "/play" nil)
+      (receive-message epyc (m+) ford "/start")
+      (receive-message epyc (m+) ford "/play")
       (let [expected-turn {:id         2
                            :player-id  (:id ford)
                            :status     "unplayed"
@@ -142,7 +140,7 @@
     ;; 1 a
     ;; 2 f
     (testing "Arthur completing first (text) turn, game 1"
-      (receive-message epyc (m+) arthur "g1t1" nil)
+      (receive-message epyc (m+) arthur "g1t1")
       (let [expected-turn {:id         1
                            :player-id  (:id arthur)
                            :status     "done"
@@ -163,7 +161,7 @@
     ;; 1 A
     ;; 2 f
     #_( (testing "Ford completing first (text) turn, game 2"
-          (receive-message epyc (m+) ford "g2t1" nil)
+          (receive-message epyc (m+) ford "g2t1")
           (let [expected-turn {:id         2
                                :player-id  (:id ford)
                                :status     "done"
@@ -184,7 +182,7 @@
        ;; 1 A
        ;; 2 F
        (testing "Ford /play"
-         (receive-message epyc (m+) ford "/play" nil)
+         (receive-message epyc (m+) ford "/play")
          (testing "creates turn 2 on game 1"
            (let [expected-turn {:id         3
                                 :player-id  (:id ford)
@@ -207,7 +205,7 @@
        ;; 1 A f
        ;; 2 F
        (testing "Zaphod /play"
-         (receive-message epyc (m+) zaphod "/play" nil)
+         (receive-message epyc (m+) zaphod "/play")
          (testing "creates turn 2 on game 2"
            (let [expected-turn {:id         4
                                 :player-id  (:id zaphod)
@@ -231,7 +229,7 @@
        ;; 1 A f
        ;; 2 F z
        (testing "Ford tries completing second (pic) turn, game 1 with text"
-         (receive-message epyc (m+) ford "g2t1" nil)
+         (receive-message epyc (m+) ford "g2t1")
          (let [expected-turn {:id         3
                               :player-id  (:id ford)
                               :status     "unplayed"
@@ -258,8 +256,7 @@
                                 :status     "done"
                                 :game-id    2
                                 :message-id (m#)
-                                :text-turn? true
-                                :photo      "g2t2"}
+                                :text-turn? true}
                  game          (db/get-game db 2)]
              (is (= "waiting"
                     (:status game)))
@@ -271,8 +268,8 @@
          ;; 1 A F
          ;; 2 F z
          (testing "Trillian /play"
-           (receive-message epyc (m+) trillian "/start" nil)
-           (receive-message epyc (m+) trillian "/play" nil)
+           (receive-message epyc (m+) trillian "/start")
+           (receive-message epyc (m+) trillian "/play")
            (testing "creates turn 3 on game 1"
              (let [expected-turn {:id         5
                                   :player-id  (:id trillian)
@@ -293,7 +290,7 @@
          ;; 1 A F t
          ;; 2 F z
          (testing "Trillian completes game 2 turn 3 with pic"
-           (receive-message epyc (m+) trillian "g2t3" nil)
+           (receive-message epyc (m+) trillian "g2t3")
            (let [expected-turn {:id         5
                                 :player-id  (:id trillian)
                                 :status     "done"
