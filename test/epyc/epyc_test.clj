@@ -58,7 +58,7 @@
 
 (defn assert-fwd [ch expected-to expected-from]
   (let [[actual-to actual-from] (<!!t ch)]
-    (is (= [expected-to expected-from]
+    (is (= [(:id expected-to) (:id expected-from)]
            [actual-to actual-from]))))
 
 (deftest receiving-commands
@@ -149,7 +149,7 @@
                            :text-turn? true
                            :content    "g1t1"}
             game          (db/get-game db 1)]
-        (is (= "waiting"
+        (is (= "available"
                (:status game)))
         (is (= 1
                (-> game :turns count)))
@@ -168,7 +168,7 @@
                            :text-turn? true
                            :content    "g2t1"}
             game          (db/get-game db 2)]
-        (is (= "waiting"
+        (is (= "available"
                (:status game)))
         (is (= 1
                (-> game :turns count)))
@@ -177,54 +177,53 @@
         (assert-msgs ch ford txt/turn-done)))
     ;; 1 A
     ;; 2 F
+    (testing "Ford /play"
+      (receive-message epyc (m+) ford "/play")
+      (testing "creates turn 2 on game 1"
+        (let [expected-turn {:id         3
+                             :player-id  (:id ford)
+                             :status     "unplayed"
+                             :game-id    1
+                             :message-id nil
+                             :text-turn? false
+                             :content    nil}
+              game          (db/get-game db 1)]
+          (is (= "waiting"
+                 (:status game)))
+          (is (= 2
+                 (-> game :turns count)))
+          (is (= expected-turn
+                 (-> game :turns last)))))
+      (testing "forwards turn 1 on game 1 and requests photo"
+        (assert-msgs ch ford txt/request-photo)
+        (assert-fwd ch ford arthur)))
+    ;; 1 A f
+    ;; 2 F
+    (testing "Zaphod /play"
+      (receive-message epyc (m+) zaphod "/start")
+      (assert-msgs ch zaphod txt/start)
+      (receive-message epyc (m+) zaphod "/play")
+      (testing "creates turn 2 on game 2"
+        (let [expected-turn {:id         4
+                             :player-id  (:id zaphod)
+                             :status     "unplayed"
+                             :game-id    2
+                             :message-id nil
+                             :text-turn? false
+                             :content    nil}
+              game          (db/get-game db 2)]
+          (is (= "waiting"
+                 (:status game)))
+          (is (= 2
+                 (-> game :turns count)))
+          (is (= expected-turn
+                 (-> game :turns last)))))
+      (testing "forwards turn 1 on game 2 and requests photo"
+        (assert-msgs ch zaphod txt/request-photo)
+        (assert-fwd ch zaphod ford)))
+    ;; 1 A f
+    ;; 2 F z
     #_(
-       (testing "Ford /play"
-         (receive-message epyc (m+) ford "/play")
-         (testing "creates turn 2 on game 1"
-           (let [expected-turn {:id         3
-                                :player-id  (:id ford)
-                                :status     "unplayed"
-                                :game-id    1
-                                :message-id nil
-                                :text-turn? false}
-                 game          (db/get-game db 1)]
-             (is (= expected-turn
-                    (db/get-turn db (:id ford))))
-             (is (= "waiting"
-                    (:status game)))
-             (is (= 2
-                    (-> game :turns count)))
-             (is (= expected-turn
-                    (-> game :turns last)))))
-         (testing "forwards turn 1 on game 1 and requests photo"
-           (assert-fwd ch ford arthur)
-           (assert-msgs ch ford txt/request-photo)))
-       ;; 1 A f
-       ;; 2 F
-       (testing "Zaphod /play"
-         (receive-message epyc (m+) zaphod "/play")
-         (testing "creates turn 2 on game 2"
-           (let [expected-turn {:id         4
-                                :player-id  (:id zaphod)
-                                :status     "unplayed"
-                                :game-id    2
-                                :message-id nil
-                                :text-turn? false}
-                 game          (db/get-game db 2)]
-             (is (= expected-turn
-                    (db/get-turn db (:id zaphod))))
-             (is (= "waiting"
-                    (:status game)))
-             (is (= 2
-                    (-> game :turns count)))
-             (is (= expected-turn
-                    (-> game :turns last)))))
-         (testing "forwards turn 1 on game 2 and requests photo"
-           (is (= [(:id zaphod) (:id ford) 1]
-                  (<!!t ch)))
-           (assert-msgs ch ford txt/request-photo)))
-       ;; 1 A f
-       ;; 2 F z
        (testing "Ford tries completing second (pic) turn, game 1 with text"
          (receive-message epyc (m+) ford "g2t1")
          (let [expected-turn {:id         3
@@ -234,9 +233,7 @@
                               :message-id (m#)
                               :text-turn? true
                               :content    "g2t1"}
-               game          (db/get-game db 2)]
-           (is (= expected-turn
-                  (db/get-turn db (:id ford))))
+               game          (db/get-game db 1)]
            (is (= "waiting"
                   (:status game)))
            (is (= 2

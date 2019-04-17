@@ -85,7 +85,8 @@
                                 "t.text_turn, t.content"
                                 "FROM turn t left join game g"
                                 "on t.g_id = g.g_id"
-                                "WHERE g.g_id = ?")
+                                "WHERE g.g_id = ?"
+                                "ORDER BY t.t_id ASC")
                            game-id])]
     (when (seq turns)
       {:id     game-id
@@ -178,7 +179,9 @@
                               :status  "done"
                               :m_id    message-id}
                 [(sql "t_id = ? AND status = 'unplayed'")
-                 turn-id]))
+                 turn-id])
+  (let [game-id (:g_id (first (jdbc/query dbspec ["SELECT g_id FROM turn WHERE t_id = ?" turn-id])))]
+    (set-game-available dbspec game-id)))
 
 
 
