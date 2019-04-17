@@ -2,7 +2,9 @@
 
 ## RIGHT NOW
 
-Add "nth" field to turn
+Add "nth" field to turn?
+
+Does game need "status"?
 
 Get tests to pass, naturally.
 
