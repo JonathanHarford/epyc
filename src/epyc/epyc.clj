@@ -60,31 +60,59 @@
         (send-turn ctx (db/new-turn db new-game-id player-id))))))
 
 (defn ^:private receive-turn
-  [{db                               :db
+  [{:as                              ctx
+    db                               :db
     sender                           :sender
-    {turns-per-game :turns-per-game} :opts} player-id message-id text]
-  (if-let [turn (db/get-turn db player-id)]
-    (do (db/play-turn db (:id turn) message-id text)
-        (send/send-text sender player-id txt/turn-done))
-    (send/send-text sender player-id txt/confused)))
+    {turns-per-game :turns-per-game} :opts} player-id message-id text photo]
+  (prn text photo)
+  (let [turn (db/get-turn db player-id)]
+    (cond
+      (nil? turn)
+      (send/send-text sender player-id txt/confused)
+
+      ;; Expected text, user sent none
+      (and (:text-turn? turn) (empty? text))
+      (do (log/info (format "P%d should have sent text, but sent nothing" player-id))
+          (resend-turn ctx turn))
+
+      ;; Expected photo, user sent none
+      (and (-> turn :text-turn? not) (empty? photo))
+      (do (log/info (format "P%d should have sent photo, but sent nothing" player-id))
+          (resend-turn ctx turn))
+
+      ;; Expected text, user sent photo
+      (and (:text-turn? turn) (seq photo))
+      (do (log/info (format "P%d should have sent text, but sent photo" player-id))
+          (resend-turn ctx turn))
+
+      ;; Expected photo, user sent text
+      (and (-> turn :text-turn? not) (seq text))
+      (do (log/info (format "P%d should have sent photo, but sent %s" player-id text))
+          (resend-turn ctx turn))
+
+      :else
+      (do (db/play-turn db (:id turn) message-id (or text photo))
+          (send/send-text sender player-id txt/turn-done)))))
 
 (defn receive-message
   "Respond to a message received from a player"
-  [{:as    ctx
-    sender :sender
-    db     :db} message-id player text]
-  (log/info (str (:id player) "-" (:first_name player) " says:") text)
-  (case text
+  ([ctx message-id player text]
+   (receive-message ctx message-id player text nil))
+  ([{:as    ctx
+     sender :sender
+     db     :db} message-id player text photo]
+   (log/info (str (:id player) "-" (:first_name player) " says:") text)
+   (case text
 
-    "/start"
-    (do (db/new-player db player)
-        (send/send-text sender (:id player) txt/start))
+     "/start"
+     (do (db/new-player db player)
+         (send/send-text sender (:id player) txt/start))
 
-    "/help"
-    (send/send-text sender (:id player) txt/help)
+     "/help"
+     (send/send-text sender (:id player) txt/help)
 
-    "/play"
-    (join-game ctx (:id player))
+     "/play"
+     (join-game ctx (:id player))
 
-    ;; default
-    (receive-turn ctx (:id player) message-id text)))
+     ;; default
+     (receive-turn ctx (:id player) message-id text photo))))
