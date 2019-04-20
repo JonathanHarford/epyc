@@ -242,66 +242,22 @@
         (assert-msgs ch ford txt/already-playing txt/request-photo))
       ;; 1 A f
       ;; 2 F z
-      #_(
-         (testing "Ford completes second turn game 2 with pic"
-           (receive-message epyc (m+) ford nil "g2t2")
-           (let [expected-turn {:id         2
-                                :player-id  (:id ford)
-                                :status     "done"
-                                :game-id    2
-                                :message-id (m#)
-                                :text-turn? true}
-                 game          (db/get-game db 2)]
-             (is (= "waiting"
-                    (:status game)))
-             (is (= 2
-                    (-> game :turns count)))
-             (is (= expected-turn
-                    (-> game :turns last)))
-             (assert-msgs ch ford txt/turn-done)))
-         ;; 1 A F
-         ;; 2 F z
-         (testing "Trillian /play"
-           (receive-message epyc (m+) trillian "/start")
-           (receive-message epyc (m+) trillian "/play")
-           (testing "creates turn 3 on game 1"
-             (let [expected-turn {:id         5
-                                  :player-id  (:id trillian)
-                                  :status     "unplayed"
-                                  :game-id    1
-                                  :message-id nil
-                                  :text-turn? true}
-                   game          (db/get-game db 1)]
-               (is (= "waiting"
-                      (:status game)))
-               (is (= 3
-                      (-> game :turns count)))
-               (is (= expected-turn
-                      (-> game :turns last)))))
-           (testing "forwards turn 2 on game 1 and requests text"
-             (assert-fwd ch trillian ford)
-             (assert-msgs ch trillian txt/request-text)))
-         ;; 1 A F t
-         ;; 2 F z
-         (testing "Trillian completes game 2 turn 3 with pic"
-           (receive-message epyc (m+) trillian "g2t3")
-           (let [expected-turn {:id         5
-                                :player-id  (:id trillian)
-                                :status     "done"
-                                :game-id    1
-                                :message-id (m#)
-                                :text-turn? true
-                                :content    "g2t2"}
-                 game          (db/get-game db 2)]
-             (is (= expected-turn
-                    (db/get-turn db (:id trillian))))
-             (is (= "done"
-                    (:status game)))
-             (is (= 3
-                    (-> game :turns count)))
-             (is (= expected-turn
-                    (-> game :turns last)))
-             (assert-msgs ch trillian txt/turn-done)))
-         ))))
+      #_(testing "Ford completes second turn game 2 with pic"
+        (receive-message epyc (m+) ford nil "g2t2")
+        (let [expected-turn {:id         3
+                             :player-id  (:id ford)
+                             :status     "done"
+                             :game-id    1
+                             :message-id (m#)
+                             :text-turn? false
+                             :content    "g2t2"}
+              game          (db/get-game db 1)]
+          (is (= "done"
+                 (:status game)))
+          (is (= 2
+                 (-> game :turns count)))
+          (is (= expected-turn
+                 (-> game :turns last)))
+          (assert-msgs ch ford txt/turn-done))))))
 
 
