@@ -64,7 +64,8 @@
     db                               :db
     sender                           :sender
     {turns-per-game :turns-per-game} :opts} player-id message-id text photo]
-  (let [turn (db/get-turn db player-id)]
+  (let [turn (db/get-turn db player-id)
+        game (db/get-game db (:game-id turn))]
     (cond
       (nil? turn)
       (send/send-text sender player-id txt/confused)
@@ -91,7 +92,10 @@
 
       :else
       (do (db/play-turn db (:id turn) message-id (or text photo))
-          (send/send-text sender player-id txt/turn-done)))))
+          (send/send-text sender player-id txt/turn-done)))
+
+    (when (= turns-per-game (-> game :turns count))
+      (db/set-game-done db (:id game)))))
 
 (defn receive-message
   "Respond to a message received from a player"
@@ -100,7 +104,11 @@
   ([{:as    ctx
      sender :sender
      db     :db} message-id player text photo]
-   (log/info (str (:id player) "-" (:first_name player) " says:") text)
+   (log/info (format "%d-%s says: %s %s"
+                     (:id player)
+                     (:first_name player)
+                     text
+                     photo))
    (case text
 
      "/start"

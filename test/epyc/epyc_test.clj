@@ -49,7 +49,7 @@
     (db/migrate-schema dbspec (slurp "resources/migration.sql"))
     [{:db     dbspec
       :sender sender
-      :opts   {:turns-per-game 3}} dbspec (:ch sender)]))
+      :opts   {:turns-per-game 2}} dbspec (:ch sender)]))
 
 (defn assert-msgs [ch expected-to & expected-msgs]
   (doseq [msg expected-msgs]
@@ -239,10 +239,11 @@
                (-> game :turns count)))
         (is (= expected-turn
                (-> game :turns last)))
-        (assert-msgs ch ford txt/already-playing txt/request-photo))
+        (assert-msgs ch ford txt/already-playing txt/request-photo)
+        (assert-fwd ch ford arthur))
       ;; 1 A f
       ;; 2 F z
-      #_(testing "Ford completes second turn game 2 with pic"
+      (testing "Ford completes second turn game 1 with pic"
         (receive-message epyc (m+) ford nil "g2t2")
         (let [expected-turn {:id         3
                              :player-id  (:id ford)
@@ -258,6 +259,9 @@
                  (-> game :turns count)))
           (is (= expected-turn
                  (-> game :turns last)))
-          (assert-msgs ch ford txt/turn-done))))))
+          (assert-msgs ch ford txt/turn-done))))
+    ;; 1 A F
+    ;; 2 F z
+    ))
 
 

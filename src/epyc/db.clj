@@ -118,6 +118,13 @@
                 ["g_id = ? AND status = 'available'"
                  game-id]))
 
+(defn set-game-done
+  [dbspec game-id]
+  (log "Setting game DONE" nil game-id)
+  (jdbc/update! dbspec :game {:status "done"}
+                ["g_id = ? AND status = 'available'"
+                 game-id]))
+
 (defn set-game-available
   [dbspec game-id]
   (log "Setting game AVAILABLE" nil game-id)
