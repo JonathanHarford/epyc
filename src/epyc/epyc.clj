@@ -64,7 +64,6 @@
     db                               :db
     sender                           :sender
     {turns-per-game :turns-per-game} :opts} player-id message-id text photo]
-  (prn text photo)
   (let [turn (db/get-turn db player-id)]
     (cond
       (nil? turn)
@@ -75,11 +74,6 @@
       (do (log/info (format "P%d should have sent text, but sent nothing" player-id))
           (resend-turn ctx turn))
 
-      ;; Expected photo, user sent none
-      (and (-> turn :text-turn? not) (empty? photo))
-      (do (log/info (format "P%d should have sent photo, but sent nothing" player-id))
-          (resend-turn ctx turn))
-
       ;; Expected text, user sent photo
       (and (:text-turn? turn) (seq photo))
       (do (log/info (format "P%d should have sent text, but sent photo" player-id))
@@ -88,6 +82,11 @@
       ;; Expected photo, user sent text
       (and (-> turn :text-turn? not) (seq text))
       (do (log/info (format "P%d should have sent photo, but sent %s" player-id text))
+          (resend-turn ctx turn))
+
+      ;; Expected photo, user sent none
+      (and (-> turn :text-turn? not) (empty? photo))
+      (do (log/info (format "P%d should have sent photo, but sent nothing" player-id))
           (resend-turn ctx turn))
 
       :else

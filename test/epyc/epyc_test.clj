@@ -223,26 +223,26 @@
         (assert-fwd ch zaphod ford)))
     ;; 1 A f
     ;; 2 F z
-    #_(
-       (testing "Ford tries completing second (pic) turn, game 1 with text"
-         (receive-message epyc (m+) ford "g2t1")
-         (let [expected-turn {:id         3
-                              :player-id  (:id ford)
-                              :status     "unplayed"
-                              :game-id    1
-                              :message-id (m#)
-                              :text-turn? true
-                              :content    "g2t1"}
-               game          (db/get-game db 1)]
-           (is (= "waiting"
-                  (:status game)))
-           (is (= 2
-                  (-> game :turns count)))
-           (is (= expected-turn
-                  (-> game :turns last)))
-           (assert-msgs ch ford txt/confused txt/request-photo))
-         ;; 1 A f
-         ;; 2 F z
+    (testing "Ford tries completing second (pic) turn, game 1 with text"
+      (receive-message epyc (m+) ford "g2t1")
+      (let [expected-turn {:id         3
+                           :player-id  (:id ford)
+                           :status     "unplayed"
+                           :game-id    1
+                           :message-id nil
+                           :text-turn? false
+                           :content    nil}
+            game          (db/get-game db 1)]
+        (is (= "waiting"
+               (:status game)))
+        (is (= 2
+               (-> game :turns count)))
+        (is (= expected-turn
+               (-> game :turns last)))
+        (assert-msgs ch ford txt/already-playing txt/request-photo))
+      ;; 1 A f
+      ;; 2 F z
+      #_(
          (testing "Ford completes second turn game 2 with pic"
            (receive-message epyc (m+) ford nil "g2t2")
            (let [expected-turn {:id         2
