@@ -253,13 +253,20 @@
                              :text-turn? false
                              :content    "g2t2"}
               game          (db/get-game db 1)]
-          (is (= "done"
-                 (:status game)))
           (is (= 2
                  (-> game :turns count)))
           (is (= expected-turn
                  (-> game :turns last)))
-          (assert-msgs ch ford txt/turn-done))))
+          (assert-msgs ch ford txt/turn-done)
+          (testing "Completed game sent to all players"
+            (assert-msgs ch arthur txt/game-done-1)
+            (assert-fwd ch arthur arthur)
+            (assert-fwd ch arthur ford)
+            (assert-msgs ch arthur txt/game-done-2)
+            (assert-msgs ch ford txt/game-done-1)
+            (assert-fwd ch ford arthur)
+            (assert-fwd ch ford ford)
+            (assert-msgs ch ford txt/game-done-2)))))
     ;; 1 A F
     ;; 2 F z
     ))

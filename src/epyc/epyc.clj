@@ -61,15 +61,29 @@
       (let [new-game-id (db/new-game db player-id)]
         (send-turn ctx (db/new-turn db new-game-id player-id))))))
 
+(defn ^:private done-turns-count [game]
+  (->> game
+       :turns
+       (filter #(= "done" (:status %)))
+       count))
+
+(defn ^:private send-done-game
+  [{:as    ctx
+    sender :sender} {:keys [turns]}]
+  (doseq [player-id (map :player-id turns)]
+    (send/send-text sender player-id txt/game-done-1)
+    (doseq [turn turns]
+      (forward-turn ctx player-id turn))
+    (send/send-text sender player-id txt/game-done-2)))
+
 (defn ^:private receive-turn
   [{:as                              ctx
     db                               :db
     sender                           :sender
     {turns-per-game :turns-per-game} :opts} player-id message-id text photo]
-  (let [turn (db/get-turn db player-id)
-        game (db/get-game db (:game-id turn))]
+  (let [turn (db/get-turn db player-id)]
     (cond
-      (nil? turn)
+      (nil? (:id turn))
       (send/send-text sender player-id txt/confused)
 
       ;; Expected text, user sent none
@@ -96,8 +110,10 @@
       (do (db/play-turn db (:id turn) message-id (or text photo))
           (send/send-text sender player-id txt/turn-done)))
 
-    (when (= turns-per-game (-> game :turns count))
-      (db/set-game-done db (:id game)))))
+    (let [game (db/get-game db (:game-id turn))]
+      (when (= turns-per-game (done-turns-count game))
+        (db/set-game-done db (:id game))
+        (send-done-game ctx game)))))
 
 (defn receive-message
   "Respond to a message received from a player"
