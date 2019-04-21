@@ -7,9 +7,17 @@
 (defn ^:private text-turn? [turn]
   (:text-turn? turn))
 
+(defn ^:private forward-turn
+  [{sender :sender} player-id turn]
+  (send/forward-message sender
+                        player-id
+                        (:player-id turn)
+                        (:message-id turn)))
+
 (defn ^:private send-turn
   "Send an unplayed turn to the player"
-  [{sender :sender
+  [{:as    ctx
+    sender :sender
     db     :db} turn]
   (let [player-id (-> turn :player-id)
         prev-turn (db/get-last-done-turn-in-game db (:game-id turn))]
@@ -20,18 +28,12 @@
       (text-turn? turn)
       (do
         (send/send-text sender player-id txt/request-text)
-        (send/forward-message sender
-                              player-id
-                              (:player-id prev-turn)
-                              (:message-id prev-turn)))
+        (forward-turn ctx player-id prev-turn))
 
       :else-photo-turn
       (do
         (send/send-text sender player-id txt/request-photo)
-        (send/forward-message sender
-                              player-id
-                              (:player-id prev-turn)
-                              (:message-id prev-turn))))))
+        (forward-turn ctx player-id prev-turn)))))
 
 (defn ^:private resend-turn [{sender :sender
                               :as    ctx} turn]
