@@ -2,13 +2,11 @@
 
 ## RIGHT NOW
 
-Add "nth" field to turn?
-
-Does game need "status"?
-
 Get tests to pass, naturally.
 
 ## Try
+
+Oh dang effects system?
 
 Get cider `,sx` working again (`(reset)` is ok?)
 
@@ -23,6 +21,8 @@ Test coverage
 ## Final pieces
 
 Post game to tumblr/group chat
+
+Various texts -- note privacy concerns
 
 ## After MVP
 
