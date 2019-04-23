@@ -139,5 +139,8 @@
      "/play"
      (join-game ctx (:id player))
 
+     "/drop"
+     (db/drop-data db)
+
      ;; default
      (receive-turn ctx (:id player) message-id text photo))))
