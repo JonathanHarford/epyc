@@ -11,10 +11,14 @@
 (def telegram-token (env :telegram-token))
 (def db-spec (env :db-spec))
 
-(defn message-fn [epyc {:keys [message_id from text] :as msg}]
+(defn message-fn [epyc {:keys [message_id from text photo animation video] :as msg}]
   (let [player (select-keys from [:id :first_name :last_name])]
     (log/info (:id player) text)
-    (epyc/receive-message epyc message_id player text)))
+    (epyc/receive-message epyc
+                          message_id
+                          player
+                          (not-empty text)
+                          (or photo animation video))))
 
 (defn -main []
   (log/info "Starting")
