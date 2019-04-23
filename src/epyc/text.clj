@@ -3,14 +3,14 @@
 
 (def start "I administer games of Eat Poop You Cat. Type `/play` to play, or `/help` for more information.")
 
-(def help
+(defn ->help [turns-per-game]
   (str
    "[Eat Poop You Cat](http://boardgamegeek.com/boardgame/30618/eat-poop-you-cat) "
    "(aka “Broken Picture Telephone”, “Telepictionary”, “The Caption Game”, "
    "“Doodle or Die”, “Drawception”, “Telestrations”) "
    "is a game of writing and drawing. The first player writes a sentence, the second player "
    "draws a picture based on the sentence, the third draws a picture based on "
-   "the sentence, and so on."))
+   "the sentence, and so on until " turns-per-game " turns have been played."))
 
 (def already-playing "You're already playing a turn!")
 (def first-turn "You'll be starting off a new game. Please give me a sentence describing a scene. Be as detailed and strange as you like!")

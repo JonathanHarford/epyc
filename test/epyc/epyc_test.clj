@@ -71,7 +71,7 @@
       (assert-msgs ch arthur txt/start))
     (testing "/help"
       (receive-message epyc (m+) arthur "/help")
-      (assert-msgs ch arthur txt/help))
+      (assert-msgs ch arthur (txt/->help 2)))
     (testing "Arthur /play"
       (receive-message epyc (m+) arthur "/play")
       (let [expected-turn {:id         1

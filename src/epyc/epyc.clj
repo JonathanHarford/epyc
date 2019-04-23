@@ -119,9 +119,10 @@
   "Respond to a message received from a player"
   ([ctx message-id player text]
    (receive-message ctx message-id player text nil))
-  ([{:as    ctx
-     sender :sender
-     db     :db} message-id player text photo]
+  ([{:as                              ctx
+     sender                           :sender
+     db                               :db
+     {turns-per-game :turns-per-game} :opts} message-id player text photo]
    (log/info (format "%d-%s says: %s %s"
                      (:id player)
                      (:first_name player)
@@ -134,7 +135,7 @@
          (send/send-text sender (:id player) txt/start))
 
      "/help"
-     (send/send-text sender (:id player) txt/help)
+     (send/send-text sender (:id player) (txt/->help turns-per-game))
 
      "/play"
      (join-game ctx (:id player))
