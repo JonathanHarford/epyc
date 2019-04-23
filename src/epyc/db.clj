@@ -31,7 +31,7 @@
            [(sql "SELECT COUNT(*) "
                  "FROM information_schema.tables "
                  "WHERE table_name IN"
-                 "('turn', 'player')")])
+                 "('turn', 'player', 'game')")])
           first
           :count
           zero?)
@@ -41,7 +41,7 @@
 
 (defn drop-data
   [dbspec]
-  (log/info "DB: Truncating tables.")
+  (log/info "DB: Dropping tables.")
   ;; Is there a simpler way to do multiple commands?
   (jdbc/execute! dbspec
                  [(str/join

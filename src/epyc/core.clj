@@ -2,6 +2,7 @@
   (:gen-class)
   (:require [clojure.tools.logging :as log]
             [epyc.epyc :as epyc]
+            [epyc.db :as db]
             [epyc.sender :as send]
             [morse.handlers :as h]
             [morse.polling :as p]
@@ -23,7 +24,7 @@
                  :turns-per-game 3}
         handler (h/message-fn (partial message-fn epyc))
         channel (p/start telegram-token handler {:timeout 65536})]
-
+    (db/migrate-schema db-spec (slurp "resources/migration.sql"))
     (doall
      (repeatedly 10000000
                  (fn []
