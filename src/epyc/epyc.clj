@@ -139,7 +139,7 @@
      "/play"
      (join-game ctx (:id player))
 
-     "/drop"
+     "/drop"    ;; TODO remove when done testing
      (db/drop-data db)
 
      ;; default
