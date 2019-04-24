@@ -7,6 +7,8 @@
    [epyc.epyc :refer [receive-message]]
    [epyc.text :as txt]))
 
+(def ^:private turns-per-game 2)
+
 (defrecord MockSender
     [ch]
   epyc.sender/ISender
@@ -49,7 +51,7 @@
     (db/migrate-schema dbspec (slurp "resources/migration.sql"))
     [{:db     dbspec
       :sender sender
-      :opts   {:turns-per-game 2}} dbspec (:ch sender)]))
+      :opts   {:turns-per-game turns-per-game}} dbspec (:ch sender)]))
 
 (defn assert-msgs [ch expected-to & expected-msgs]
   (doseq [msg expected-msgs]
@@ -61,6 +63,13 @@
     (is (= [(:id expected-to) (:id expected-from)]
            [actual-to actual-from]))))
 
+(defn assert-done [ch & players]
+  (doseq [player players]
+    (assert-msgs ch player txt/game-done-1)
+    (doseq [turn players]
+      (assert-fwd ch player turn))
+    (assert-msgs ch player txt/game-done-2)))
+
 (deftest receiving-commands
   (println "-----------------")
   (let [[epyc db ch] (create-epyc)]
@@ -71,7 +80,7 @@
       (assert-msgs ch arthur txt/start))
     (testing "/help"
       (receive-message epyc (m+) arthur "/help")
-      (assert-msgs ch arthur (txt/->help 2)))
+      (assert-msgs ch arthur (txt/->help turns-per-game)))
     (testing "Arthur /play"
       (receive-message epyc (m+) arthur "/play")
       (let [expected-turn {:id         1
@@ -257,18 +266,49 @@
                  (-> game :turns count)))
           (is (= expected-turn
                  (-> game :turns last)))
-          (assert-msgs ch ford txt/turn-done)
-          (testing "Completed game sent to all players"
-            (assert-msgs ch arthur txt/game-done-1)
-            (assert-fwd ch arthur arthur)
-            (assert-fwd ch arthur ford)
-            (assert-msgs ch arthur txt/game-done-2)
-            (assert-msgs ch ford txt/game-done-1)
-            (assert-fwd ch ford arthur)
-            (assert-fwd ch ford ford)
-            (assert-msgs ch ford txt/game-done-2)))))
-    ;; 1 A F
-    ;; 2 F z
-    ))
+          (assert-msgs ch ford txt/turn-done)))
+      ;; 1 A F
+      ;; 2 F z
+      #_(testing "Trillian /play"
+        (receive-message epyc (m+) trillian "/start")
+        (assert-msgs ch trillian txt/start)
+        (receive-message epyc (m+) trillian "/play")
+        (testing "creates turn 3 on game 1"
+          (let [expected-turn {:id         5
+                               :player-id  (:id trillian)
+                               :status     "unplayed"
+                               :game-id    1
+                               :message-id nil
+                               :text-turn? true
+                               :content    nil}
+                game          (db/get-game db 1)]
+            (is (= "waiting"
+                   (:status game)))
+            (is (= 3
+                   (-> game :turns count)))
+            (is (= expected-turn
+                   (-> game :turns last)))))
+        (testing "forwards turn 2 on game 1 and requests text"
+          (assert-msgs ch trillian txt/request-text)
+          (assert-fwd ch trillian ford)))
+      ;; 1 A F t
+      ;; 2 F z
+      #_(testing "Trillian completes third turn game 1 with text"
+        (receive-message epyc (m+) trillian "g1t3")
+        (let [expected-turn {:id         5
+                             :player-id  (:id trillian)
+                             :status     "done"
+                             :game-id    1
+                             :message-id (m#)
+                             :text-turn? true
+                             :content    "g1t3"}
+              game          (db/get-game db 1)]
+          (is (= 3
+                 (-> game :turns count)))
+          (is (= expected-turn
+                 (-> game :turns last)))
+          (assert-msgs ch trillian txt/turn-done)))
+      (testing "Completed game sent to all players"
+        (assert-done ch arthur ford #_trillian)))))
 
 
