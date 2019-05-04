@@ -1,6 +1,6 @@
 # epyc
 
-FIXME: description
+Administers games of Eat Poop You Cat over Telegram
 
 ## Installation
 

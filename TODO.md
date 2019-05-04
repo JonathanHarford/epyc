@@ -2,8 +2,6 @@
 
 ## RIGHT NOW
 
-Get tests to pass, naturally.
-
 ## Try
 
 Oh dang effects system?
@@ -17,6 +15,8 @@ Component / Mount
 ORM (Toucan?)
 
 Test coverage
+
+Get it to run on Heroku
 
 ## Final pieces
 

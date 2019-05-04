@@ -1,0 +1,7 @@
+{
+  "name": "Eat Poop You Cat Telegram Bot",
+  "description": "Administers games of Eat Poop You Cat over Telegram",
+  "repository": "https://github.com/JonathanHarford/epyc-email",
+  "keywords": ["clojure", "telegram", "game", "bot", "multiplayer"],
+  "addons": ["heroku-postgresql"]
+}
