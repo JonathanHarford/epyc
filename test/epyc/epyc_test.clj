@@ -7,7 +7,7 @@
    [epyc.epyc :refer [receive-message]]
    [epyc.text :as txt]))
 
-(def ^:private turns-per-game 2)
+(def ^:private turns-per-game 3)
 
 (defrecord MockSender
     [ch]
@@ -272,7 +272,7 @@
           (assert-msgs ch ford txt/turn-done)))
       ;; 1 A F
       ;; 2 F z
-      #_(testing "Trillian /play"
+      (testing "Trillian /play"
         (receive-message epyc (m+) trillian "/start")
         (assert-msgs ch trillian txt/start)
         (receive-message epyc (m+) trillian "/play")
@@ -296,7 +296,7 @@
           (assert-fwd ch trillian ford)))
       ;; 1 A F t
       ;; 2 F z
-      #_(testing "Trillian completes third turn game 1 with text"
+      (testing "Trillian completes third turn game 1 with text"
         (receive-message epyc (m+) trillian "g1t3")
         (let [expected-turn {:id         5
                              :player-id  (:id trillian)
@@ -312,6 +312,6 @@
                  (-> game :turns last)))
           (assert-msgs ch trillian txt/turn-done)))
       (testing "Completed game sent to all players"
-        (assert-done ch arthur ford #_trillian)))))
+        (assert-done ch [arthur ford trillian])))))
 
 
