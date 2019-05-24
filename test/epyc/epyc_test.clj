@@ -53,17 +53,20 @@
       :sender sender
       :opts   {:turns-per-game turns-per-game}} dbspec (:ch sender)]))
 
-(defn assert-msgs [ch expected-to & expected-msgs]
+(defn assert-msgs
+  [ch expected-to & expected-msgs]
   (doseq [msg expected-msgs]
     (is (= [(:id expected-to) msg]
            (<!!t ch)))))
 
-(defn assert-fwd [ch expected-to expected-from]
+(defn assert-fwd
+  [ch expected-to expected-from]
   (let [[actual-to actual-from] (<!!t ch)]
     (is (= [(:id expected-to) (:id expected-from)]
            [actual-to actual-from]))))
 
-(defn assert-done [ch & players]
+(defn assert-done
+  [ch players]
   (doseq [player players]
     (assert-msgs ch player txt/game-done-1)
     (doseq [turn players]
