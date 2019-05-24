@@ -132,8 +132,8 @@
                      (:id player)
                      (:first_name player)
                      (if text
-                         (str "TEXT:" text)
-                         (str "PHOTO:" photo))))
+                       (str "TEXT:" text)
+                       (str "PHOTO:" photo))))
    (case text
 
      "/start"
@@ -146,7 +146,7 @@
      "/play"
      (join-game ctx (:id player))
 
-     "/drop"    ;; TODO remove when done testing
+     "/drop" ;; TODO remove when done testing
      (db/drop-data db)
 
      ;; default
