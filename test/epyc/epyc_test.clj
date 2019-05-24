@@ -45,7 +45,7 @@
 (defn ^:private create-epyc
   "Create an EPYC with a test db and a mocked sender. Returns itself, a db, and the channel for the sender."
   []
-  (let [sender (->MockSender (async/chan (async/buffer 10)))
+  (let [sender (->MockSender (async/chan (async/buffer 100)))
         dbspec "postgresql://localhost:5432/epyctest"]
     (db/drop-data dbspec)
     (db/migrate-schema dbspec (slurp "resources/migration.sql"))
