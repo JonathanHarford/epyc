@@ -70,9 +70,14 @@
 (defn ^:private send-done-game
   [{:as    ctx
     sender :sender} {:keys [turns]}]
+  (log/info "Sending done game")
   (doseq [player-id (map :player-id turns)]
     (send/send-text sender player-id txt/game-done-1)
     (doseq [turn turns]
+      (log/info (format "Forwarding G%sT%s to P%s"
+                        (:game-id turn)
+                        (:id turn)
+                        player-id))
       (forward-turn ctx player-id turn))
     (send/send-text sender player-id txt/game-done-2)))
 
@@ -116,18 +121,19 @@
         (send-done-game ctx game)))))
 
 (defn receive-message
-  "Respond to a message received from a player"
+  "Receive a message from a player in order to respond"
   ([ctx message-id player text]
    (receive-message ctx message-id player text nil))
   ([{:as                              ctx
      sender                           :sender
      db                               :db
      {turns-per-game :turns-per-game} :opts} message-id player text photo]
-   (log/info (format "%d-%s says: %s %s"
+   (log/info (format "%d-%s says: %s"
                      (:id player)
                      (:first_name player)
-                     text
-                     photo))
+                     (if text
+                         (str "TEXT:" text)
+                         (str "PHOTO:" photo))))
    (case text
 
      "/start"

@@ -29,6 +29,7 @@
         handler (h/message-fn (partial message-fn epyc))
         channel (p/start telegram-token handler {:timeout 65536})]
     (db/migrate-schema db-spec (slurp "resources/migration.sql"))
+    (log/info "Open for business.")
     (doall
      (repeatedly 10000000
                  (fn []
