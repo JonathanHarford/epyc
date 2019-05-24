@@ -10,6 +10,7 @@
 
 (def telegram-token (env :telegram-token))
 (def db-spec (env :db-spec))
+(def turns-per-game (env :turns-per-game))
 
 (defn message-fn [epyc {:keys [message_id from text photo animation video] :as msg}]
   (let [player (select-keys from [:id :first_name :last_name])]
@@ -25,7 +26,7 @@
   (let [sender  (send/->Sender telegram-token)
         epyc    {:db             db-spec
                  :sender         sender
-                 :turns-per-game 2}
+                 :turns-per-game turns-per-game}
         handler (h/message-fn (partial message-fn epyc))
         channel (p/start telegram-token handler {:timeout 65536})]
     (db/migrate-schema db-spec (slurp "resources/migration.sql"))
