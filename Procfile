@@ -1,1 +1,1 @@
-web: java $JVM_OPTS -jar target/uberjar/epyc-standalone.jar
+web: java $JVM_OPTS -jar target/epyc-standalone.jar
