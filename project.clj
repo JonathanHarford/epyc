@@ -6,7 +6,7 @@
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [environ "1.1.0"]
-                 [morse "0.4.2"]
+                 [morse "0.4.3"]
                  [org.postgresql/postgresql "42.2.6.jre7"]
                  [org.clojure/java.jdbc "0.7.9"]
                  [com.taoensso/timbre "4.10.0"]]
