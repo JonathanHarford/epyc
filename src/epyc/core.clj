@@ -1,6 +1,7 @@
 (ns epyc.core
   (:gen-class)
   (:require [clojure.tools.logging :as log]
+            [clojure.java.jdbc :as jdbc]
             [epyc.epyc :as epyc]
             [epyc.db :as db]
             [epyc.sender :as send]
@@ -9,7 +10,7 @@
             [environ.core :refer [env]]))
 
 (def telegram-token (env :telegramtoken))
-(def db-spec (env :dbspec))
+(def dbspec (env :dbspec))
 (def turns-per-game (Integer/parseInt (env :turnspergame)))
 
 (defn message-fn [epyc {:keys [message_id from text photo animation video] :as msg}]
@@ -23,20 +24,21 @@
 
 (defn -main []
   (log/info "Starting")
-  (let [sender  (send/->Sender telegram-token)
-        epyc    {:db             db-spec
-                 :sender         sender
-                 :turns-per-game turns-per-game}
-        handler (h/message-fn (partial message-fn epyc))
-        channel (p/start telegram-token handler {:timeout 65536})]
-    (db/migrate-schema db-spec (slurp "resources/migration.sql"))
-    (log/info "Open for business.")
-    (doall
-     (repeatedly 10000000
-                 (fn []
-                   (print ".")
-                   (Thread/sleep 60000))))
+  (jdbc/with-db-connection [db-con dbspec]
+    (let [sender  (send/->Sender telegram-token)
+          epyc    {:db             db-con
+                   :sender         sender
+                   :turns-per-game turns-per-game}
+          handler (h/message-fn (partial message-fn epyc))
+          channel (p/start telegram-token handler {:timeout 65536})]
+      (db/migrate-schema db-con (slurp "resources/migration.sql"))
+      (log/info "Open for business.")
+      (doall
+       (repeatedly 10000000
+                   (fn []
+                     (print ".")
+                     (Thread/sleep 60000))))
 
-    (log/info "Bye")
-    (p/stop channel)))
+      (log/info "Bye")
+      (p/stop channel))))
 
