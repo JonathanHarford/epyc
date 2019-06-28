@@ -26,6 +26,7 @@
           (when game-id (str " [" game-id (when turn-id (str "/" turn-id)) "]")) " " msg-str))))
 
 (defn migrate-schema [dbspec schema]
+  (prn (subs schema 0 100))
   (if (-> (jdbc/query
            dbspec
            [(sql "SELECT COUNT(*) "
