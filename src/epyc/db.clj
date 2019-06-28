@@ -37,7 +37,7 @@
           zero?)
     (do (log/info "DB: Migrating")
         (jdbc/execute! dbspec [schema]))
-    (log/warn "Can't migrate if tables exist! Aborting.")))
+    (log/info "No need to migrate as tables exist.")))
 
 (defn drop-data
   [dbspec]

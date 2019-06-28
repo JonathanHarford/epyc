@@ -1,5 +1,4 @@
-(ns epyc.text
-  (:require [clojure.string :as str]))
+(ns epyc.text)
 
 (def start "I administer games of Eat Poop You Cat. Type `/play` to play, or `/help` for more information.")
 
@@ -10,7 +9,7 @@
    "“Doodle or Die”, “Drawception”, “Telestrations”) "
    "is a game of writing and drawing. The first player writes a sentence, the second player "
    "draws a picture based on the sentence, the third draws a picture based on "
-   "the sentence, and so on until " turns-per-game " turns have been played."))
+   "the sentence, and so on until " turns-per-game " turns have been played. Type `/play` to play!"))
 
 (def already-playing "You're already playing a turn!")
 (def first-turn "You'll be starting off a new game. Please give me a sentence describing a scene. Be as detailed and strange as you like!")
