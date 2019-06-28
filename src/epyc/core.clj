@@ -8,9 +8,9 @@
             [morse.polling :as p]
             [environ.core :refer [env]]))
 
-(def telegram-token (env :telegram-token))
-(def db-spec (env :db-spec))
-(def turns-per-game (Integer/parseInt (env :turns-per-game)))
+(def telegram-token (env :telegramtoken))
+(def db-spec (env :dbspec))
+(def turns-per-game (Integer/parseInt (env :turnspergame)))
 
 (defn message-fn [epyc {:keys [message_id from text photo animation video] :as msg}]
   (let [player (select-keys from [:id :first_name :last_name])]
