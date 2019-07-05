@@ -21,7 +21,7 @@ CREATE TABLE turn (
   status VARCHAR (10) NOT NULL DEFAULT 'unplayed', -- 'done', 'deleted'
   text_turn BOOLEAN NOT NULL,
   m_id INTEGER,  -- ID of telegram message
-  content VARCHAR (255),
+  content TEXT,
   c_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
   m_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT turn_p_id_fkey FOREIGN KEY (p_id)
