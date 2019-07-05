@@ -1,5 +1,6 @@
 (ns epyc.db
   (:require [clojure.string :as str]
+            [clojure.edn :as edn]
             [taoensso.timbre :as log]
             [clojure.java.jdbc :as jdbc]))
 
@@ -11,7 +12,7 @@
           :message-id m_id
           :status     t_status
           :text-turn? text_turn
-          :content    content}))
+          :content    (edn/read-string content)}))
 
 (defn ^:private sql [& strs]
   (str/join " " strs))
@@ -182,7 +183,7 @@
 (defn play-turn
   [dbspec turn-id message-id content]
   (log/info "Playing turn")
-  (jdbc/update! dbspec :turn {:content content
+  (jdbc/update! dbspec :turn {:content (pr-str content)
                               :status  "done"
                               :m_id    message-id}
                 [(sql "t_id = ? AND status = 'unplayed'")

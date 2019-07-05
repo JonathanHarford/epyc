@@ -256,14 +256,16 @@
       ;; 1 A f
       ;; 2 F z
       (testing "Ford completes second turn game 1 with pic"
-        (receive-message epyc (m+) ford nil "g2t2")
+        (receive-message epyc (m+) ford nil [{:file_id "g2t2-a"}
+                                             {:file_id "g2t2-b"}])
         (let [expected-turn {:id         3
                              :player-id  (:id ford)
                              :status     "done"
                              :game-id    1
                              :message-id (m#)
                              :text-turn? false
-                             :content    "g2t2"}
+                             :content    [{:file_id "g2t2-a"}
+                                          {:file_id "g2t2-b"}]}
               game          (db/get-game db 1)]
           (is (= 2
                  (-> game :turns count)))
