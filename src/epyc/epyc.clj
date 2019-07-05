@@ -58,7 +58,7 @@
       (send-turn ctx (db/new-turn db (:id unplayed-game) player-id))
 
       :else-create-new-game
-      (let [new-game-id (db/new-game db player-id)]
+      (let [new-game-id (db/new-game db player-id (-> ctx :opts :turns-per-game))]
         (send-turn ctx (db/new-turn db new-game-id player-id))))))
 
 (defn ^:private done-turns-count [game]
@@ -84,8 +84,7 @@
 (defn ^:private receive-turn
   [{:as                              ctx
     db                               :db
-    sender                           :sender
-    {turns-per-game :turns-per-game} :opts} player-id message-id text photo]
+    sender                           :sender} player-id message-id text photo]
   (let [turn (db/get-turn db player-id)]
     (cond
       (nil? (:id turn))
@@ -116,7 +115,7 @@
           (send/send-text sender player-id txt/turn-done)))
 
     (let [game (db/get-game db (:game-id turn))]
-      (when (= turns-per-game (done-turns-count game))
+      (when (= (:num-turns game) (done-turns-count game))
         (db/set-game-done db (:id game))
         (send-done-game ctx game)))))
 

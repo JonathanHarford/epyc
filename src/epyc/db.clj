@@ -69,8 +69,9 @@
        first))
 
 (defn new-game
-  [dbspec player-id]
-  (let [game-id (->> {:status "available"}
+  [dbspec player-id num-turns]
+  (let [game-id (->> {:status "available"
+                      :num_turns num-turns}
                      (jdbc/insert! dbspec :game)
                      first
                      :g_id)]
@@ -81,6 +82,7 @@
   [dbspec game-id]
   (let [turns (jdbc/query dbspec
                           [(sql "SELECT g.g_id, g.status g_status,"
+                                "g.num_turns,"
                                 "t.t_id, t.p_id, t.m_id,"
                                 "t.status t_status,"
                                 "t.text_turn, t.content"
@@ -91,6 +93,7 @@
                            game-id])]
     (when (seq turns)
       {:id     game-id
+       :num-turns (-> turns first :num_turns)
        :status (-> turns first :g_status)
        :turns  (mapv db-turn->turn turns)})))
 
