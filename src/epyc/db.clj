@@ -70,7 +70,7 @@
 
 (defn new-game
   [dbspec player-id num-turns]
-  (let [game-id (->> {:status "available"
+  (let [game-id (->> {:status    "available"
                       :num_turns num-turns}
                      (jdbc/insert! dbspec :game)
                      first

@@ -46,8 +46,9 @@
 
 (defn ^:private join-game
   "Attach a player to a game, creating a new game if necessary"
-  [{db  :db
-    :as ctx} player-id]
+  [{db   :db
+    opts :opts
+    :as  ctx} player-id]
   (let [existing-turn (db/get-turn db player-id)
         unplayed-game (db/get-unplayed-game db player-id)]
     (cond
@@ -58,7 +59,7 @@
       (send-turn ctx (db/new-turn db (:id unplayed-game) player-id))
 
       :else-create-new-game
-      (let [new-game-id (db/new-game db player-id (-> ctx :opts :turns-per-game))]
+      (let [new-game-id (db/new-game db player-id (:turns-per-game opts))]
         (send-turn ctx (db/new-turn db new-game-id player-id))))))
 
 (defn ^:private done-turns-count [game]
@@ -82,9 +83,9 @@
     (send/send-text sender player-id txt/game-done-2)))
 
 (defn ^:private receive-turn
-  [{:as                              ctx
-    db                               :db
-    sender                           :sender} player-id message-id text photo]
+  [{:as    ctx
+    db     :db
+    sender :sender} player-id message-id text photo]
   (let [turn (db/get-turn db player-id)]
     (cond
       (nil? (:id turn))
@@ -123,10 +124,10 @@
   "Receive a message from a player in order to respond"
   ([ctx message-id player text]
    (receive-message ctx message-id player text nil))
-  ([{:as                              ctx
-     sender                           :sender
-     db                               :db
-     {turns-per-game :turns-per-game} :opts} message-id player text photo]
+  ([{:as    ctx
+     sender :sender
+     db     :db
+     opts   :opts} message-id player text photo]
    (log/info (format "%d-%s says: %s"
                      (:id player)
                      (:first_name player)
@@ -140,7 +141,7 @@
          (send/send-text sender (:id player) txt/start))
 
      "/help"
-     (send/send-text sender (:id player) (txt/->help turns-per-game))
+     (send/send-text sender (:id player) (txt/->help (:turns-per-game opts)))
 
      "/play"
      (join-game ctx (:id player))

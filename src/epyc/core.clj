@@ -28,7 +28,7 @@
     (let [sender  (send/->Sender telegram-token)
           epyc    {:db             db-con
                    :sender         sender
-                   :turns-per-game turns-per-game}
+                   :opts {:turns-per-game turns-per-game}}
           handler (h/message-fn (partial message-fn epyc))
           channel (p/start telegram-token handler {:timeout 65536})]
       (db/migrate-schema db-con (slurp "resources/migration.sql"))
