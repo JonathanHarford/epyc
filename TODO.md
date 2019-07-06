@@ -2,11 +2,13 @@
 
 ## RIGHT NOW
 
+Don't allow emoji?
+
+When db is reset, don't require `/start` from players
+
 ## Try
 
 Oh dang effects system?
-
-Get it to run on Heroku
 
 ## Final pieces
 
