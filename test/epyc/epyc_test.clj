@@ -81,6 +81,10 @@
       (is (= arthur
              (db/get-player db (:id arthur))))
       (assert-msgs ch arthur txt/start))
+    (testing "redundant /start is a noop"
+      (receive-message epyc (m+) arthur "/start")
+      (is (= arthur (db/get-player db (:id arthur))))
+      (assert-msgs ch arthur txt/start))
     (testing "/help"
       (receive-message epyc (m+) arthur "/help")
       (assert-msgs ch arthur (txt/->help (-> epyc :opts :turns-per-game))))
@@ -128,7 +132,6 @@
                      txt/first-turn)))
     ;; 1 a
     (testing "Ford /play with no open games creates game"
-      (receive-message epyc (m+) ford "/start")
       (receive-message epyc (m+) ford "/play")
       (let [expected-turn {:id         2
                            :player-id  (:id ford)
@@ -146,9 +149,7 @@
                (-> game :turns count)))
         (is (= expected-turn
                (-> game :turns last)))
-        (assert-msgs ch ford
-                     txt/start
-                     txt/first-turn)))
+        (assert-msgs ch ford txt/first-turn)))
     ;; 1 a
     ;; 2 f
     (testing "Arthur completing first (text) turn, game 1"

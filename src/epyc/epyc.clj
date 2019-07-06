@@ -14,6 +14,11 @@
                         (:player-id turn)
                         (:message-id turn)))
 
+(defn ^:private get-player
+  [db telegram-user]
+  (or (db/get-player db (:id telegram-user))
+      (db/new-player db telegram-user)))
+
 (defn ^:private send-turn
   "Send an unplayed turn to the player"
   [{:as    ctx
@@ -127,27 +132,27 @@
   ([{:as    ctx
      sender :sender
      db     :db
-     opts   :opts} message-id player text photo]
-   (log/info (format "%d-%s says: %s"
-                     (:id player)
-                     (:first_name player)
-                     (if text
-                       (str "TEXT:" text)
-                       (str "PHOTO:" photo))))
-   (case text
+     opts   :opts} message-id telegram-user text photo]
+   (let [player (get-player db telegram-user)]
+     (log/info (format "%d-%s says: %s"
+                       (:id player)
+                       (:first_name player)
+                       (if text
+                         (str "TEXT:" text)
+                         (str "PHOTO:" photo))))
+     (case text
 
-     "/start"
-     (do (db/new-player db player)
-         (send/send-text sender (:id player) txt/start))
+       "/start"
+       (send/send-text sender (:id player) txt/start)
 
-     "/help"
-     (send/send-text sender (:id player) (txt/->help (:turns-per-game opts)))
+       "/help"
+       (send/send-text sender (:id player) (txt/->help (:turns-per-game opts)))
 
-     "/play"
-     (join-game ctx (:id player))
+       "/play"
+       (join-game ctx (:id player))
 
-     "/drop" ;; TODO remove when done testing
-     (db/drop-data db)
+       "/drop" ;; TODO remove when done testing
+       (db/drop-data db)
 
-     ;; default
-     (receive-turn ctx (:id player) message-id text photo))))
+       ;; default
+       (receive-turn ctx (:id player) message-id text photo)))))
