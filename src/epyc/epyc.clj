@@ -14,11 +14,6 @@
                         (:player-id turn)
                         (:message-id turn)))
 
-(defn ^:private get-player
-  [db telegram-user]
-  (or (db/get-player db (:id telegram-user))
-      (db/new-player db telegram-user)))
-
 (defn ^:private send-turn
   "Send an unplayed turn to the player"
   [{:as    ctx
@@ -124,6 +119,11 @@
       (when (= (:num-turns game) (done-turns-count game))
         (db/set-game-done db (:id game))
         (send-done-game ctx game)))))
+
+(defn ^:private get-player
+  [db telegram-user]
+  (or (db/get-player db (:id telegram-user))
+      (db/new-player db telegram-user)))
 
 (defn receive-message
   "Receive a message from a player in order to respond"

@@ -59,13 +59,14 @@
        first))
 
 (defn new-player
-  [dbspec {:keys [id first_name last_name]}]
+  [dbspec {:as user
+           :keys [id first_name last_name]}]
   (log "Creating" id)
   (jdbc/insert! dbspec
                 :player
                 {:p_id       id
                  :first_name first_name
-                 :last_name  last_name})
+                 :last_name  (str last_name)})
   (get-player dbspec id))
 
 
