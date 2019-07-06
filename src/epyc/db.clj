@@ -51,6 +51,13 @@
                     "DROP TABLE game CASCADE"
                     "DROP TABLE turn CASCADE"])]))
 
+(defn get-player
+  [dbspec player-id]
+  (->> [(sql "SELECT p_id as id, first_name, last_name"
+             "FROM player WHERE p_id = ?") player-id]
+       (jdbc/query dbspec)
+       first))
+
 (defn new-player
   [dbspec {:keys [id first_name last_name]}]
   (log "Creating" id)
@@ -58,15 +65,10 @@
                 :player
                 {:p_id       id
                  :first_name first_name
-                 :last_name  last_name}))
+                 :last_name  last_name})
+  (get-player dbspec id))
 
 
-(defn get-player
-  [dbspec player-id]
-  (->> [(sql "SELECT p_id as id, first_name, last_name"
-             "FROM player WHERE p_id = ?") player-id]
-       (jdbc/query dbspec)
-       first))
 
 (defn new-game
   [dbspec player-id num-turns]
