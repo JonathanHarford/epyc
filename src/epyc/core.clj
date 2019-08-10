@@ -26,9 +26,9 @@
   (log/info "Starting")
   (jdbc/with-db-connection [db-con dbspec]
     (let [sender  (send/->Sender telegram-token)
-          epyc    {:db             db-con
-                   :sender         sender
-                   :opts {:turns-per-game turns-per-game}}
+          epyc    {:db     db-con
+                   :sender sender
+                   :opts   {:turns-per-game turns-per-game}}
           handler (h/message-fn (partial message-fn epyc))
           channel (p/start telegram-token handler {:timeout 65536})]
       (db/migrate-schema db-con (slurp "resources/migration.sql"))
