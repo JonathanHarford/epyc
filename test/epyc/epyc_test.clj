@@ -252,7 +252,8 @@
                (-> game :turns count)))
         (is (= expected-turn
                (-> game :turns last)))
-        (assert-msgs ch ford txt/already-playing txt/request-photo)
+        (assert-msgs ch ford txt/expect-photo-got-text)
+        (assert-msgs ch ford txt/request-photo)
         (assert-fwd ch ford arthur))
       ;; 1 A f
       ;; 2 F z
@@ -315,6 +316,7 @@
                  (-> game :turns last)))
           (assert-msgs ch trillian txt/turn-done)))
       (testing "Completed game sent to all players"
-        (assert-done ch [arthur ford trillian])))))
+        (assert-done ch [arthur ford trillian]))
+      )))
 
 

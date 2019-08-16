@@ -94,22 +94,26 @@
       ;; Expected text, user sent none
       (and (:text-turn? turn) (empty? text))
       (do (log/info (format "P%d should have sent text, but sent nothing" player-id))
-          (resend-turn ctx turn))
+          (send/send-text sender player-id txt/pardon)
+          (send-turn ctx turn))
 
       ;; Expected text, user sent photo
       (and (:text-turn? turn) (seq photo))
       (do (log/info (format "P%d should have sent text, but sent photo" player-id))
-          (resend-turn ctx turn))
+          (send/send-text sender player-id txt/expect-text-got-photo)
+          (send-turn ctx turn))
 
       ;; Expected photo, user sent text
       (and (-> turn :text-turn? not) (seq text))
       (do (log/info (format "P%d should have sent photo, but sent %s" player-id text))
-          (resend-turn ctx turn))
+          (send/send-text sender player-id txt/expect-photo-got-text)
+          (send-turn ctx turn))
 
       ;; Expected photo, user sent none
       (and (-> turn :text-turn? not) (empty? photo))
       (do (log/info (format "P%d should have sent photo, but sent nothing" player-id))
-          (resend-turn ctx turn))
+          (send/send-text sender player-id txt/pardon)
+          (send-turn ctx turn))
 
       :else
       (do (db/play-turn db (:id turn) message-id (or text photo))

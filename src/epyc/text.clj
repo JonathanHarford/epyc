@@ -19,3 +19,6 @@
 (def confused "I'm not sure what to do with that, since you're not in a game right now. Maybe try `/help`?")
 (def game-done-1 "The game is finished! Here are all the turns:")
 (def game-done-2 "Thanks for playing!")
+(def pardon "Pardon?")
+(def expect-text-got-photo "I was expecting a description from you, but you sent me a photo!")
+(def expect-photo-got-text "I was expecting a photo from you, but you sent me a description!")
