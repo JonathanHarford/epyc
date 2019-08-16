@@ -1,44 +1,27 @@
 # epyc
 
-Administers games of Eat Poop You Cat over Telegram
+Administers games of [Eat Poop You Cat](https://boardgamegeek.com/boardgame/30618/eat-poop-you-cat) over the Telegram messaging service. You can try it [here](https://telegram.me/epyc-bot).
+
+Includes an `app.json` and `Procfile` for use with Heroku.
 
 ## Installation
 
-`psql postgres -c"CREATE DATABASE epyc"`
+Create a database: `psql postgres -c"CREATE DATABASE epyc"`
 
-To be able to run tests:
-`psql postgres -c"CREATE DATABASE epyctest"`
-
-To run tests:
-`lein test`
+Create a `.lein-env` in the project root, e.g.:
+```
+{:telegramtoken "Get one of these from @BotFather!"
+ :dbspec        "postgresql://localhost:5432/epyc"
+ :dbtestspec    "postgresql://localhost:5432/epyctest"
+ :turnspergame  "10"}
+```
 
 ## Usage
 
-TODO
+`lein run`
 
-## Options
+## Running Tests
 
-TODO
+Create a test db: `psql postgres -c"CREATE DATABASE epyctest"`
 
-## Examples
-
-TODO
-
-### Bugs
-
-TODO
-
-## License
-
-Copyright © 2019 FIXME
-
-This program and the accompanying materials are made available under the
-terms of the Eclipse Public License 2.0 which is available at
-http://www.eclipse.org/legal/epl-2.0.
-
-This Source Code may also be made available under the following Secondary
-Licenses when the conditions for such availability set forth in the Eclipse
-Public License, v. 2.0 are satisfied: GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or (at your
-option) any later version, with the GNU Classpath Exception which is available
-at https://www.gnu.org/software/classpath/license.html.
+Then: `lein test`
